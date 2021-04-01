@@ -195,11 +195,11 @@ int main(int argc, char** argv)
         fprintf(stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
                 N, dt, diff, visc, force, source);
     } else {
-        N = atoi(argv[1]);
-        dt = atof(argv[2]);
-        diff = atof(argv[3]);
-        visc = atof(argv[4]);
-        force = atof(argv[5]);
+        N      = atoi(argv[1]);
+        dt     = atof(argv[2]);
+        diff   = atof(argv[3]);
+        visc   = atof(argv[4]);
+        force  = atof(argv[5]);
         source = atof(argv[6]);
     }
 

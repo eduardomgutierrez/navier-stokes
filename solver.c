@@ -3,6 +3,8 @@
 #include "solver.h"
 
 #define IX(i, j) ((i) + (n + 2) * (j))
+
+// Simplificar
 #define SWAP(x0, x)      \
     {                    \
         float* tmp = x0; \
@@ -50,10 +52,13 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
 
 static void diffuse(unsigned int n, boundary b, float* x, const float* x0, float diff, float dt)
 {
+    
+
     float a = dt * diff * n * n;
     lin_solve(n, b, x, x0, a, 1 + 4 * a);
 }
 
+// Contar branch predictions.
 static void advect(unsigned int n, boundary b, float* d, const float* d0, const float* u, const float* v, float dt)
 {
     int i0, i1, j0, j1;
