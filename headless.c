@@ -16,12 +16,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 #include "wtime.h"
-
+#include <hdf5.h>
 /* macros */
 
 #define IX(i, j) ((i) + (N + 2) * (j))
+#define Ntimes 1048
 
 /* external definitions (from solver.c) */
 
@@ -31,12 +32,17 @@ extern void vel_step(int N, float* u, float* v, float* u0, float* v0, float visc
 /* global variables */
 
 static int N;
+static int count;
 static float dt, diff, visc;
 static float force, source;
 
-static float *u, *v, *u_prev, *v_prev;
+static float *u, *u_prev;
+static float *v, *v_prev;
 static float *dens, *dens_prev;
 
+static char H5FILE_NAME[50];
+static char FILE_NAME[50];
+static FILE *fp;
 
 /*
   ----------------------------------------------------------------------
@@ -44,6 +50,58 @@ static float *dens, *dens_prev;
   ----------------------------------------------------------------------
 */
 
+static int create_H5_2Ddata(char *H5FILE_NAME)
+{
+    hid_t file_id, dataspace_id;
+    hsize_t dims[3];
+    dims[0] = Ntimes;   dims[1] = N+2;  dims[2] = N+2;
+    herr_t status;
+
+    file_id = H5Fcreate(H5FILE_NAME, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    dataspace_id = H5Screate_simple(3, dims, NULL);
+    hid_t dens_id = H5Dcreate(file_id, "dens", H5T_NATIVE_FLOAT, dataspace_id,
+                                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t u_id = H5Dcreate(file_id, "u", H5T_NATIVE_FLOAT, dataspace_id,
+                                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t v_id = H5Dcreate(file_id, "v", H5T_NATIVE_FLOAT, dataspace_id,
+                                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dclose(dens_id);
+    status = H5Dclose(u_id);
+    status = H5Dclose(v_id);
+    status = H5Fclose(file_id);
+
+    return status;
+}
+
+static int write_H5_2Ddata(hid_t file_id, char *DATASET_NAME, float* dset_data, int it)
+{
+    hsize_t offset[3] = {it, 0, 0};
+    hsize_t count[3] = {1, N+2, N+2};
+    hsize_t slabsize[3] = {N+2, N+2};
+    herr_t  status;
+    hid_t dataset_id = H5Dopen(file_id, DATASET_NAME, H5P_DEFAULT);
+    hid_t dataspace_id = H5Dget_space(dataset_id);
+    
+    hid_t memspace_id = H5Screate_simple(2, slabsize, NULL);
+    status = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, memspace_id, dataspace_id, H5P_DEFAULT, dset_data);
+    status = H5Sclose(dataspace_id);
+    status = H5Sclose(memspace_id);
+    status = H5Dclose(dataset_id);
+
+    return status;
+}
+
+static int writeFields(char *H5FILE_NAME, float *dens, float *u, float *v, int offset)
+{
+    herr_t status;
+    hid_t file_id = H5Fopen(H5FILE_NAME, H5F_ACC_RDWR, H5P_DEFAULT);
+    write_H5_2Ddata(file_id, "dens", dens, offset);
+    write_H5_2Ddata(file_id, "u", u, offset);
+    write_H5_2Ddata(file_id, "v", v, offset);
+    status = H5Fclose(file_id);
+    return status;
+}
 
 static void free_data(void)
 {
@@ -64,6 +122,9 @@ static void free_data(void)
     }
     if (dens_prev) {
         free(dens_prev);
+    }
+    if (fp) {
+        fclose(fp);
     }
 }
 
@@ -86,8 +147,9 @@ static int allocate_data(void)
     v_prev = (float*)malloc(size * sizeof(float));
     dens = (float*)malloc(size * sizeof(float));
     dens_prev = (float*)malloc(size * sizeof(float));
+    fp = fopen(FILE_NAME, "w");
 
-    if (!u || !v || !u_prev || !v_prev || !dens || !dens_prev) {
+    if (!u || !v || !u_prev || !v_prev || !dens || !dens_prev || !fp) {
         fprintf(stderr, "cannot allocate data\n");
         return (0);
     }
@@ -95,8 +157,7 @@ static int allocate_data(void)
     return (1);
 }
 
-
-static void react(float* d, float* u, float* v)
+static void react(float* d, float* u, float* v, int it)
 {
     int i, size = (N + 2) * (N + 2);
     float max_velocity2 = 0.0f;
@@ -104,30 +165,26 @@ static void react(float* d, float* u, float* v)
 
     max_velocity2 = max_density = 0.0f;
     for (i = 0; i < size; i++) {
-        if (max_velocity2 < u[i] * u[i] + v[i] * v[i]) {
+        if (max_velocity2 < u[i] * u[i] + v[i] * v[i])
             max_velocity2 = u[i] * u[i] + v[i] * v[i];
-        }
-        if (max_density < d[i]) {
+        if (max_density < d[i])
             max_density = d[i];
-        }
     }
 
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < size; i++)
         u[i] = v[i] = d[i] = 0.0f;
-    }
 
-    if (max_velocity2 < 0.0000005f) {
-        u[IX(N / 2, N / 2)] = force * 10.0f;
-        v[IX(N / 2, N / 2)] = force * 10.0f;
+    if (max_velocity2 < 0.0000005f && it == 0) {
+        u[IX(N / 2+10, N / 2+10)] = force * 20.0f;
+        //v[IX(N / 2, N / 2)] = force * 10.0f;
     }
-    if (max_density < 1.0f) {
-        d[IX(N / 2, N / 2)] = source * 10.0f;
-    }
+    if (max_density < 1.0f && it == 0)
+        d[IX(N / 2+10, N / 2+10)] = source * 10.0f;
 
     return;
 }
 
-static void one_step(void)
+static void one_step(int it)
 {
     static int times = 1;
     static double start_t = 0.0;
@@ -137,7 +194,7 @@ static void one_step(void)
     static double dens_ns_p_cell = 0.0;
 
     start_t = wtime();
-    react(dens_prev, u_prev, v_prev);
+    react(dens_prev, u_prev, v_prev, it);
     react_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
     start_t = wtime();
@@ -148,10 +205,16 @@ static void one_step(void)
     dens_step(N, dens, dens_prev, u, v, diff, dt);
     dens_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
+    int status = writeFields(H5FILE_NAME, dens, u, v, it);
     if (1.0 < wtime() - one_second) { /* at least 1s between stats */
-        printf("%lf, %lf, %lf, %lf: ns per cell total, react, vel_step, dens_step\n",
-               (react_ns_p_cell + vel_ns_p_cell + dens_ns_p_cell) / times,
+        /*
+        fprintf(stdout, "%d, %lf, %lf, %lf, %lf: times, ns per cell total, react, vel_step, dens_step\n",
+                times, (react_ns_p_cell + vel_ns_p_cell + dens_ns_p_cell) / times,
                react_ns_p_cell / times, vel_ns_p_cell / times, dens_ns_p_cell / times);
+        fprintf(fp, "%d %lf %lf %lf %lf\n", N,
+                (react_ns_p_cell+vel_ns_p_cell+dens_ns_p_cell) / times, react_ns_p_cell / times,
+                vel_ns_p_cell / times, dens_ns_p_cell / times);
+        */
         one_second = wtime();
         react_ns_p_cell = 0.0;
         vel_ns_p_cell = 0.0;
@@ -160,6 +223,7 @@ static void one_step(void)
     } else {
         times++;
     }
+    printf("Iteration number = %d\n", it);
 }
 
 
@@ -172,8 +236,10 @@ static void one_step(void)
 int main(int argc, char** argv)
 {
     int i = 0;
+    count = 0;
 
-    if (argc != 1 && argc != 7) {
+    printf("%d\n", argc);
+    if (argc != 1 && argc != 8) {
         fprintf(stderr, "usage : %s N dt diff visc force source\n", argv[0]);
         fprintf(stderr, "where:\n");
         fprintf(stderr, "\t N      : grid resolution\n");
@@ -182,16 +248,18 @@ int main(int argc, char** argv)
         fprintf(stderr, "\t visc   : viscosity of the fluid\n");
         fprintf(stderr, "\t force  : scales the mouse movement that generate a force\n");
         fprintf(stderr, "\t source : amount of density that will be deposited\n");
+        fprintf(stderr, "\t file   : output file name\n");
         exit(1);
     }
 
     if (argc == 1) {
-        N = 128;
+        N = 130;
         dt = 0.1f;
         diff = 0.0f;
-        visc = 0.0f;
+        visc = 0.1f;
         force = 5.0f;
         source = 100.0f;
+        strcpy(FILE_NAME, "RunTime.dat");
         fprintf(stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
                 N, dt, diff, visc, force, source);
     } else {
@@ -201,15 +269,22 @@ int main(int argc, char** argv)
         visc   = atof(argv[4]);
         force  = atof(argv[5]);
         source = atof(argv[6]);
+        strcpy(FILE_NAME, argv[7]);
     }
 
     if (!allocate_data()) {
         exit(1);
     }
     clear_data();
-    for (i = 0; i < 2048; i++) {
-        one_step();
+
+    strcpy(H5FILE_NAME, "data.h5");
+    int status;
+    status = create_H5_2Ddata(H5FILE_NAME);
+    
+    for (i = 0; i < Ntimes; i++) {
+        one_step(i);
     }
+
     free_data();
 
     exit(0);

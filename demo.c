@@ -40,7 +40,6 @@ static int win_x, win_y;
 static int mouse_down[3];
 static int omx, omy, mx, my;
 
-
 /*
   ----------------------------------------------------------------------
    free/clear/allocate simulation data
@@ -212,7 +211,6 @@ static void react(float* d, float* u, float* v)
     if (max_density < 1.0f) {
         d[IX(N / 2, N / 2)] = source * 10.0f;
     }
-
     if (!mouse_down[0] && !mouse_down[2]) {
         return;
     }
@@ -381,7 +379,6 @@ static void open_glut_window(void)
 int main(int argc, char** argv)
 {
     glutInit(&argc, argv);
-
     if (argc != 1 && argc != 7) {
         fprintf(stderr, "usage : %s N dt diff visc force source\n", argv[0]);
         fprintf(stderr, "where:\n");
@@ -395,7 +392,7 @@ int main(int argc, char** argv)
     }
 
     if (argc == 1) {
-        N = 64;
+        N = 100;
         dt = 0.1f;
         diff = 0.0f;
         visc = 0.0f;
