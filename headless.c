@@ -19,6 +19,22 @@
 #include <string.h>
 #include "wtime.h"
 #include <hdf5.h>
+
+
+/* likwid library */
+#ifdef LIKWID_PERFMON
+#include <likwid.h>
+#else
+#define LIKWID_MARKER_INIT
+#define LIKWID_MARKER_THREADINIT
+#define LIKWID_MARKER_SWITCH
+#define LIKWID_MARKER_REGISTER(regionTag)
+#define LIKWID_MARKER_START(regionTag)
+#define LIKWID_MARKER_STOP(regionTag)
+#define LIKWID_MARKER_CLOSE
+#define LIKWID_MARKER_GET(regionTag, nevents, events, time, count)
+#endif
+
 /* macros */
 
 #define IX(i, j) ((i) + (N + 2) * (j))
@@ -194,15 +210,27 @@ static void one_step(int it)
     static double dens_ns_p_cell = 0.0;
 
     start_t = wtime();
+
+    LIKWID_MARKER_START("REACT");
     react(dens_prev, u_prev, v_prev, it);
+    LIKWID_MARKER_STOP("REACT");
+
     react_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
     start_t = wtime();
+
+    LIKWID_MARKER_START("VEL");
     vel_step(N, u, v, u_prev, v_prev, visc, dt);
+    LIKWID_MARKER_STOP("VEL");
+
     vel_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
     start_t = wtime();
+    
+    LIKWID_MARKER_START("DENS");
     dens_step(N, dens, dens_prev, u, v, diff, dt);
+    LIKWID_MARKER_STOP("DENS");
+    
     dens_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
     int status = writeFields(H5FILE_NAME, dens, u, v, it);
@@ -223,7 +251,7 @@ static void one_step(int it)
     } else {
         times++;
     }
-    printf("Iteration number = %d\n", it);
+    // printf("Iteration number = %d\n", it);
 }
 
 
@@ -277,13 +305,28 @@ int main(int argc, char** argv)
     }
     clear_data();
 
-    strcpy(H5FILE_NAME, "data.h5");
-    int status;
-    status = create_H5_2Ddata(H5FILE_NAME);
+
+    // Likwid Marker API initialization.
+    LIKWID_MARKER_INIT;
+    LIKWID_MARKER_THREADINIT;
     
-    for (i = 0; i < Ntimes; i++) {
-        one_step(i);
-    }
+    // Register regions:
+    LIKWID_MARKER_REGISTER("TOTAL");
+    LIKWID_MARKER_REGISTER("REACT");
+    LIKWID_MARKER_REGISTER("VEL");
+    LIKWID_MARKER_REGISTER("DENS");
+
+    LIKWID_MARKER_START("TOTAL");
+
+    strcpy(H5FILE_NAME, "data.h5");
+    
+    int status = create_H5_2Ddata(H5FILE_NAME);
+    
+    for (i = 0; i < Ntimes; i++) one_step(i);
+
+    LIKWID_MARKER_STOP("TOTAL");
+
+    LIKWID_MARKER_CLOSE;
 
     free_data();
 

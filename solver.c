@@ -47,13 +47,11 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
             }
         }
         set_bnd(n, b, x);
-    }
+    }    
 }
 
 static void diffuse(unsigned int n, boundary b, float* x, const float* x0, float diff, float dt)
 {
-    
-
     float a = dt * diff * n * n;
     lin_solve(n, b, x, x0, a, 1 + 4 * a);
 }

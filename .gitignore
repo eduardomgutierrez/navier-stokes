@@ -1,4 +1,3 @@
-
 # Created by https://www.toptal.com/developers/gitignore/api/linux,c,python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=linux,c,python,visualstudiocode
 
@@ -235,3 +234,6 @@ Thumbs.db #thumbnail cache on Windows
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,c,python,visualstudiocode
+
+# Build directories
+T_*/
