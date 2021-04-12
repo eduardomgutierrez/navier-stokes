@@ -1,5 +1,6 @@
 import sys
 import getopt
+from json import load, dumps, JSONDecodeError
 from target import Target
 from subprocess import run
 from os import path as ph, chdir as ch, environ
@@ -23,11 +24,13 @@ L2 = ('L2CACHE', ['L2 request rate',
                   'L2 miss ratio'])
 
 """ Defined targets """
-targets = [Target(name='T_CLEAN'),
-           Target(name='T_O1', stats_collectors=[FL_SP], flags=['-O1']),
-           Target(name='T_O2', stats_collectors=[FL_SP], flags=['-O2']),
-           Target(name='T_O3', stats_collectors=[FL_SP], flags=['-O3']),
-           Target(name='T_Of', stats_collectors=[FL_SP], flags=['-Ofast'])]
+targets = [
+    Target(name='T_CLEAN'),
+    Target(name='T_O1', stats_collectors=[FL_SP], flags=['-O1']),
+    Target(name='T_O2', stats_collectors=[FL_SP], flags=['-O2']),
+    Target(name='T_O3', stats_collectors=[FL_SP], flags=['-O3']),
+    Target(name='T_Of', stats_collectors=[FL_SP], flags=['-Ofast'])
+]
 
 """ Directory handlers """
 def fw(n): return ch(ph.join(ph.curdir, n))
@@ -44,7 +47,8 @@ def runner(t: Target, log_file):
     fw(t.name)
 
     run_file = open('run.out', mode='w' if ph.isfile('run.out') else 'x')
-    stats_file = open('stats', mode='w' if ph.isfile('stats') else 'x')
+    stats_file = open(
+        'stats.json', mode='w' if ph.isfile('stats.json') else 'x')
 
     compile_res = run(['meson', 'compile'], shell=False,
                       capture_output=True, env=env)
@@ -108,13 +112,10 @@ def collect(sc, output, stats_file, log_file):
                 if(region_line[0] in sc[1]):
                     region_stats = stats[region_name]
                     region_stats[region_line[0]] = region_line[1]
-                    # stats_file.write(
-                    #     f'{region_name}, {region_line[0]}: {region_line[1]}\n')
-                    # print(f'{region_name}, {region_line[0]}: {region_line[1]}')
                 r_id += 1
                 region_line = lines[id+r_id].split(',')
 
-        stats_file.write(str(stats))
+        stats_file.write(dumps(stats))
 
         return None
 
@@ -182,10 +183,12 @@ def automatize(tgs):
 
 def usage():
     """ Prints command usage. """
-
     print('Navier-Stokes automatization helper.')
-    print('Run a specific target ; [-t TARGETNAME]')
-    print('Set core id ; [-c CORE] or [-c CORE0-COREN]')
+    print('List of avaiable options:')
+    print('-t TARGETNAME                  Automatize specific target.')
+    print('-c CORE | CORE1 - COREN        Set cores to run performance counters.')
+    print('-d                             Enable performance counters and collect data.')
+    print('-s                             Generate summary from collected data.')
 
 
 def clean():
@@ -196,10 +199,29 @@ def clean():
         return '@ Error while cleaning directories.'
 
 
+def summary(targets: list):
+
+    summary_file = open('sum.json', mode='w' if ph.isfile('sum.json') else 'x')
+
+    output = {}
+
+    for t in targets:
+        fw(t.name)
+        s = open('stats.json', mode='r')
+        try:
+            sum = load(s)
+            output[t.name] = sum
+        except JSONDecodeError:
+            output[t.name] = ''
+        bw()
+    summary_file.write(dumps(output))
+
+
 def main():
     """ Main """
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "Cdc:t:", ["help", "output="])
+        opts, args = getopt.getopt(
+            sys.argv[1:], "hsCdc:t:", ["help", "output="])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -207,6 +229,7 @@ def main():
 
     target = None
     clean_dirs = False
+    s = False
 
     for o, a in opts:
         if o == '-c':
@@ -224,15 +247,24 @@ def main():
         if o == '-C':
             clean_dirs = True
 
+        if o == '-s':
+            """ Summary """
+            s = True
+
         elif o == '-h':
             usage()
             return
+
+    if(s):
+        summary(targets)
+        return
 
     if(clean_dirs):
         print(clean())
         return
 
     automatize(targets if target is None else target)
+
 
 if __name__ == '__main__':
     main()
