@@ -61,10 +61,3 @@ Presentación de los resultados en clase (10 minutos) e informe breve.
         -   [Intentar medir las
             causas](https://travisdowns.github.io/blog/2019/06/11/speed-limits.html)
             además de la performance.
-
-TODOS:
-======
-
-1. Automatizar compilación y ejecución del código.
-2. Analizar OUTPUTs (resultado, tiempos, mediciones).
-3. Generar tests.

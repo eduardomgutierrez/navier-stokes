@@ -21,8 +21,8 @@ glu_dep = cc.find_library('GLU', required: false)
 glut_dep = cc.find_library('glut', required: false)
 
 
-# demo = executable('demo',
-#     [ 'demo.c', 'solver.c' ],
-#     dependencies: [ gl_dep, glu_dep, glut_dep ],
-#     link_args: ['-I/${PAPI_DIR}/include', '-L/${PAPI_DIR}/lib', '-lpapi'],
-# )
+demo = executable('demo',
+     [ 'demo.c', 'solver.c' ],
+     dependencies: [ gl_dep, glu_dep, glut_dep ],
+     link_args: ['-I/${PAPI_DIR}/include', '-L/${PAPI_DIR}/lib', '-lpapi'],
+ )

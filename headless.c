@@ -38,7 +38,8 @@
 /* macros */
 
 #define IX(i, j) ((i) + (N + 2) * (j))
-#define Ntimes 1048
+
+#define Ntimes 100
 
 /* external definitions (from solver.c) */
 
@@ -56,7 +57,9 @@ static float *u, *u_prev;
 static float *v, *v_prev;
 static float *dens, *dens_prev;
 
+#ifdef H5DATA
 static char H5FILE_NAME[50];
+#endif
 static char FILE_NAME[50];
 static FILE *fp;
 
@@ -66,6 +69,7 @@ static FILE *fp;
   ----------------------------------------------------------------------
 */
 
+#ifdef H5DATA
 static int create_H5_2Ddata(char *H5FILE_NAME)
 {
     hid_t file_id, dataspace_id;
@@ -118,6 +122,8 @@ static int writeFields(char *H5FILE_NAME, float *dens, float *u, float *v, int o
     status = H5Fclose(file_id);
     return status;
 }
+
+#endif
 
 static void free_data(void)
 {
@@ -233,7 +239,9 @@ static void one_step(int it)
     
     dens_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
+    #ifdef H5DATA
     int status = writeFields(H5FILE_NAME, dens, u, v, it);
+    #endif
     if (1.0 < wtime() - one_second) { /* at least 1s between stats */
         /*
         fprintf(stdout, "%d, %lf, %lf, %lf, %lf: times, ns per cell total, react, vel_step, dens_step\n",
@@ -284,7 +292,7 @@ int main(int argc, char** argv)
         N = 130;
         dt = 0.1f;
         diff = 0.0f;
-        visc = 0.1f;
+        visc = 0.0f;
         force = 5.0f;
         source = 100.0f;
         strcpy(FILE_NAME, "RunTime.dat");
@@ -318,10 +326,12 @@ int main(int argc, char** argv)
 
     LIKWID_MARKER_START("TOTAL");
 
+    #ifdef H5DATA
     strcpy(H5FILE_NAME, "data.h5");
     
     int status = create_H5_2Ddata(H5FILE_NAME);
-    
+    #endif
+
     for (i = 0; i < Ntimes; i++) one_step(i);
 
     LIKWID_MARKER_STOP("TOTAL");
