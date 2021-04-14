@@ -237,3 +237,9 @@ Thumbs.db #thumbnail cache on Windows
 
 # Build directories
 T_*/
+
+
+# Others
+*.pdf
+*.jpg
+*.json
