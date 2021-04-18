@@ -1,8 +1,12 @@
-#include <stddef.h>
-
 #include "solver.h"
+#include <stddef.h>
+#include <stdio.h>
 
-#define IX(i, j) ((i) + (n + 2) * (j))
+#define ABS(x) x < 0 ? -x : x
+
+// Cambiamos a column major.
+#define IX(i, j) ((i) * (n + 2) + (j))
+
 
 // Simplificar
 #define SWAP(x0, x)      \
@@ -40,6 +44,69 @@ static void set_bnd(unsigned int n, boundary b, float* x)
 
 static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, float a, float c)
 {
+
+#ifdef INV_M
+    float inv_c = 1.0f / c;
+#endif
+
+#ifdef LINSOLVE
+    float acum;
+
+#ifdef REUSE
+    float x_new;
+    do {
+        acum = 0.0f;
+        for (unsigned int i = 1; i <= n; i++) {
+            unsigned int j = 1;
+            
+            #ifdef INV_M
+                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+            #else
+                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+            #endif
+            
+            acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
+            x[IX(i, j)] = x_new;
+
+            for (j = 2; j <= n; j++) {
+
+                #ifdef INV_M
+                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+                #else
+                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+                #endif
+
+                acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
+                x[IX(i, j)] = x_new;
+            }
+        }
+        acum = acum / (n * n);
+        set_bnd(n, b, x);
+    } while (acum > 1e-1f);
+    
+#else
+    float x_new;
+    do {
+        acum = 0.0f;
+        for (unsigned int i = 1; i <= n; i++) {
+            for (unsigned int j = 1; j <= n; j++) {
+                #ifdef INV_M
+                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+                #else
+                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+                #endif
+                
+                acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
+                x[IX(i, j)] = x_new;
+            }
+        }
+        acum = acum / (n * n);
+        set_bnd(n, b, x);
+    } while (acum > 1e-1f);
+
+#endif
+
+#else
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i <= n; i++) {
             for (unsigned int j = 1; j <= n; j++) {
@@ -47,7 +114,8 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
             }
         }
         set_bnd(n, b, x);
-    }    
+    }
+#endif
 }
 
 static void diffuse(unsigned int n, boundary b, float* x, const float* x0, float diff, float dt)

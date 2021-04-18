@@ -25,9 +25,13 @@
 
 #define IX(i, j) ((i) + (N + 2) * (j))
 
+// #ifndef N 
+#define N 256
+// #endif
+
 /* global variables */
 
-static int N;
+// static int N;
 static float dt, diff, visc;
 static float force, source;
 static int dvel;
@@ -392,7 +396,7 @@ int main(int argc, char** argv)
     }
 
     if (argc == 1) {
-        N = 100;
+        // N = 100;
         dt = 0.1f;
         diff = 0.0f;
         visc = 0.0f;
@@ -401,7 +405,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
                 N, dt, diff, visc, force, source);
     } else {
-        N = atoi(argv[1]);
+        // N = atoi(argv[1]);
         dt = atof(argv[2]);
         diff = atof(argv[3]);
         visc = atof(argv[4]);
