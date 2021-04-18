@@ -14,11 +14,11 @@
   =======================================================================
 */
 
+#include "wtime.h"
+#include <hdf5.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "wtime.h"
-#include <hdf5.h>
 
 
 /* likwid library */
@@ -37,19 +37,23 @@
 
 /* macros */
 
-#define IX(i, j) ((i) + (N + 2) * (j))
+// #define IX(i, j) ((i) + (N + 2) * (j))
+#define IX(i, j) ((i) * (N + 2) + (j))
+
 
 #ifndef Ntimes
-#define Ntimes 100
+#define Ntimes 2048
 #endif
 
 /* external definitions (from solver.c) */
-extern void dens_step(int N, float* x, float* x0, float* u, float* v, float diff, float dt);
-extern void vel_step(int N, float* u, float* v, float* u0, float* v0, float visc, float dt);
+extern void dens_step(int n, float* x, float* x0, float* u, float* v, float diff, float dt);
+extern void vel_step(int n, float* u, float* v, float* u0, float* v0, float visc, float dt);
 
 /* global variables */
+#ifndef N
+#define N 64
+#endif
 
-static int N;
 static int count;
 static float dt, diff, visc;
 static float force, source;
@@ -62,7 +66,7 @@ static float *dens, *dens_prev;
 static char H5FILE_NAME[50];
 #endif
 static char FILE_NAME[50];
-static FILE *fp;
+static FILE* fp;
 
 /*
   ----------------------------------------------------------------------
@@ -71,21 +75,23 @@ static FILE *fp;
 */
 
 #ifdef H5DATA
-static int create_H5_2Ddata(char *H5FILE_NAME)
+static int create_H5_2Ddata(char* H5FILE_NAME)
 {
     hid_t file_id, dataspace_id;
     hsize_t dims[3];
-    dims[0] = Ntimes;   dims[1] = N+2;  dims[2] = N+2;
+    dims[0] = Ntimes;
+    dims[1] = N + 2;
+    dims[2] = N + 2;
     herr_t status;
 
     file_id = H5Fcreate(H5FILE_NAME, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     dataspace_id = H5Screate_simple(3, dims, NULL);
     hid_t dens_id = H5Dcreate(file_id, "dens", H5T_NATIVE_FLOAT, dataspace_id,
-                                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                              H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hid_t u_id = H5Dcreate(file_id, "u", H5T_NATIVE_FLOAT, dataspace_id,
-                                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hid_t v_id = H5Dcreate(file_id, "v", H5T_NATIVE_FLOAT, dataspace_id,
-                                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dclose(dens_id);
     status = H5Dclose(u_id);
     status = H5Dclose(v_id);
@@ -94,15 +100,15 @@ static int create_H5_2Ddata(char *H5FILE_NAME)
     return status;
 }
 
-static int write_H5_2Ddata(hid_t file_id, char *DATASET_NAME, float* dset_data, int it)
+static int write_H5_2Ddata(hid_t file_id, char* DATASET_NAME, float* dset_data, int it)
 {
-    hsize_t offset[3] = {it, 0, 0};
-    hsize_t count[3] = {1, N+2, N+2};
-    hsize_t slabsize[3] = {N+2, N+2};
-    herr_t  status;
+    hsize_t offset[3] = { it, 0, 0 };
+    hsize_t count[3] = { 1, N + 2, N + 2 };
+    hsize_t slabsize[3] = { N + 2, N + 2 };
+    herr_t status;
     hid_t dataset_id = H5Dopen(file_id, DATASET_NAME, H5P_DEFAULT);
     hid_t dataspace_id = H5Dget_space(dataset_id);
-    
+
     hid_t memspace_id = H5Screate_simple(2, slabsize, NULL);
     status = H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, memspace_id, dataspace_id, H5P_DEFAULT, dset_data);
@@ -113,7 +119,7 @@ static int write_H5_2Ddata(hid_t file_id, char *DATASET_NAME, float* dset_data, 
     return status;
 }
 
-static int writeFields(char *H5FILE_NAME, float *dens, float *u, float *v, int offset)
+static int writeFields(char* H5FILE_NAME, float* dens, float* u, float* v, int offset)
 {
     herr_t status;
     hid_t file_id = H5Fopen(H5FILE_NAME, H5F_ACC_RDWR, H5P_DEFAULT);
@@ -173,6 +179,7 @@ static int allocate_data(void)
     fp = fopen(FILE_NAME, "w");
 
     if (!u || !v || !u_prev || !v_prev || !dens || !dens_prev || !fp) {
+        // printf("%d, %d, %d, %d, %d, %d, %d\n", u == NULL, v == NULL, u_prev == NULL, v_prev == NULL, dens == NULL, dens_prev == NULL, fp == NULL);
         fprintf(stderr, "cannot allocate data\n");
         return (0);
     }
@@ -180,7 +187,7 @@ static int allocate_data(void)
     return (1);
 }
 
-static void react(float* d, float* u, float* v, int it)
+static void react(float* d, float* u, float* v)
 {
     int i, size = (N + 2) * (N + 2);
     float max_velocity2 = 0.0f;
@@ -188,30 +195,34 @@ static void react(float* d, float* u, float* v, int it)
 
     max_velocity2 = max_density = 0.0f;
     for (i = 0; i < size; i++) {
-        if (max_velocity2 < u[i] * u[i] + v[i] * v[i])
+        if (max_velocity2 < u[i] * u[i] + v[i] * v[i]) {
             max_velocity2 = u[i] * u[i] + v[i] * v[i];
-        if (max_density < d[i])
+        }
+        if (max_density < d[i]) {
             max_density = d[i];
+        }
     }
 
-    for (i = 0; i < size; i++)
+    for (i = 0; i < size; i++) {
         u[i] = v[i] = d[i] = 0.0f;
-
-    if (max_velocity2 < 0.0000005f && it == 0) {
-        u[IX(N / 2+10, N / 2+10)] = force * 20.0f;
-        //v[IX(N / 2, N / 2)] = force * 10.0f;
     }
-    if (max_density < 1.0f && it == 0)
-        d[IX(N / 2+10, N / 2+10)] = source * 10.0f;
+
+    if (max_velocity2 < 0.0000005f) {
+        u[IX(N / 2, N / 2)] = force * 10.0f;
+        v[IX(N / 2, N / 2)] = force * 10.0f;
+    }
+    if (max_density < 1.0f) {
+        d[IX(N / 2, N / 2)] = source * 10.0f;
+    }
 
     return;
 }
 
-static void one_step(int it)
+static void one_step(double* rct, double *vel, double* dns)
 {
-    static int times = 1;
+    // static int times = 1;
     static double start_t = 0.0;
-    static double one_second = 0.0;
+    // static double one_second = 0.0;
     static double react_ns_p_cell = 0.0;
     static double vel_ns_p_cell = 0.0;
     static double dens_ns_p_cell = 0.0;
@@ -219,10 +230,9 @@ static void one_step(int it)
     start_t = wtime();
 
     LIKWID_MARKER_START("REACT");
-    react(dens_prev, u_prev, v_prev, it);
+    react(dens_prev, u_prev, v_prev);
     LIKWID_MARKER_STOP("REACT");
-
-    react_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
+    react_ns_p_cell += (wtime() - start_t);
 
     start_t = wtime();
 
@@ -230,37 +240,23 @@ static void one_step(int it)
     vel_step(N, u, v, u_prev, v_prev, visc, dt);
     LIKWID_MARKER_STOP("VEL");
 
-    vel_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
+    vel_ns_p_cell += (wtime() - start_t);
 
     start_t = wtime();
-    
+
     LIKWID_MARKER_START("DENS");
     dens_step(N, dens, dens_prev, u, v, diff, dt);
     LIKWID_MARKER_STOP("DENS");
-    
-    dens_ns_p_cell += 1.0e9 * (wtime() - start_t) / (N * N);
 
-    #ifdef H5DATA
+    dens_ns_p_cell += (wtime() - start_t) / (N * N);
+
+#ifdef H5DATA
     int status = writeFields(H5FILE_NAME, dens, u, v, it);
-    #endif
-    if (1.0 < wtime() - one_second) { /* at least 1s between stats */
-        /*
-        fprintf(stdout, "%d, %lf, %lf, %lf, %lf: times, ns per cell total, react, vel_step, dens_step\n",
-                times, (react_ns_p_cell + vel_ns_p_cell + dens_ns_p_cell) / times,
-               react_ns_p_cell / times, vel_ns_p_cell / times, dens_ns_p_cell / times);
-        fprintf(fp, "%d %lf %lf %lf %lf\n", N,
-                (react_ns_p_cell+vel_ns_p_cell+dens_ns_p_cell) / times, react_ns_p_cell / times,
-                vel_ns_p_cell / times, dens_ns_p_cell / times);
-        */
-        one_second = wtime();
-        react_ns_p_cell = 0.0;
-        vel_ns_p_cell = 0.0;
-        dens_ns_p_cell = 0.0;
-        times = 1;
-    } else {
-        times++;
-    }
-    // printf("Iteration number = %d\n", it);
+#endif
+
+    *rct = react_ns_p_cell;
+    *vel = vel_ns_p_cell;
+    *dns = dens_ns_p_cell;
 }
 
 
@@ -274,8 +270,6 @@ int main(int argc, char** argv)
 {
     int i = 0;
     count = 0;
-
-    printf("%d\n", argc);
     if (argc != 1 && argc != 8) {
         fprintf(stderr, "usage : %s N dt diff visc force source\n", argv[0]);
         fprintf(stderr, "where:\n");
@@ -290,7 +284,6 @@ int main(int argc, char** argv)
     }
 
     if (argc == 1) {
-        N = 130;
         dt = 0.1f;
         diff = 0.0f;
         visc = 0.0f;
@@ -300,11 +293,10 @@ int main(int argc, char** argv)
         fprintf(stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force = %g source=%g\n",
                 N, dt, diff, visc, force, source);
     } else {
-        N      = atoi(argv[1]);
-        dt     = atof(argv[2]);
-        diff   = atof(argv[3]);
-        visc   = atof(argv[4]);
-        force  = atof(argv[5]);
+        dt = atof(argv[2]);
+        diff = atof(argv[3]);
+        visc = atof(argv[4]);
+        force = atof(argv[5]);
         source = atof(argv[6]);
         strcpy(FILE_NAME, argv[7]);
     }
@@ -318,22 +310,28 @@ int main(int argc, char** argv)
     // Likwid Marker API initialization.
     LIKWID_MARKER_INIT;
     LIKWID_MARKER_THREADINIT;
-    
+
     // Register regions:
     LIKWID_MARKER_REGISTER("TOTAL");
     LIKWID_MARKER_REGISTER("REACT");
     LIKWID_MARKER_REGISTER("VEL");
     LIKWID_MARKER_REGISTER("DENS");
 
+
+#ifdef H5DATA
+    strcpy(H5FILE_NAME, "data.h5");
+
+    int status = create_H5_2Ddata(H5FILE_NAME);
+#endif
+
     LIKWID_MARKER_START("TOTAL");
 
-    #ifdef H5DATA
-    strcpy(H5FILE_NAME, "data.h5");
-    
-    int status = create_H5_2Ddata(H5FILE_NAME);
-    #endif
+    double rct,vel,dns;
 
-    for (i = 0; i < Ntimes; i++) one_step(i);
+    for (i = 0; i < Ntimes; i++)
+        one_step(&rct, &vel, &dns);
+
+    printf("# CELL_MS: %f\n", N*N * Ntimes / (rct + vel + dns) * 1e-3);
 
     LIKWID_MARKER_STOP("TOTAL");
 

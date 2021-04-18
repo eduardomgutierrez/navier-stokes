@@ -5,19 +5,23 @@ from json import load, dumps, JSONDecodeError
 from target import Target
 from subprocess import run
 from os import path as ph, chdir as ch, environ
+import numpy as np
 
 
 """ Run variables """
 CORE = 1                # Selected core[s] to run the likwid-perfctr.
 COLLECT = False         # Collect perf data.
 
-RT = 15
+RT = 1
 
-SIZES = [256, 512, 1024, 2048]
+# GFLOPs, IPC, CellsXTime
+# SIZES = [64,256]
+SIZES = np.logspace(np.log10(65), np.log10(1000), 20, dtype= np.int32)
+
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
-                      'SP [MFLOP/s]'])
+                      'SP [MFLOP/s]', 'IPC'])
 
 BR = ('BRANCH', ['Branch rate',
                  'Branch misprediction rate',
@@ -28,80 +32,128 @@ L2 = ('L2CACHE', ['L2 request rate',
                   'L2 miss rate',
                   'L2 miss ratio'])
 
+# Agregar GCC a los targets.
+
 """ Defined targets """
 targets = [
+
+    # Optimization targets!
+    #     Target(name='T_LS',
+    #            stats_collectors=[FL_SP],
+    #            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE'],),
+
+    #     Target(name='T_O2ULFM_LINSOLVE_INVM',
+    #            stats_collectors=[FL_SP],
+    #            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINVM'],),
+
+    # Target(name='T_MOVIE',
+    #            stats_collectors=[FL_SP],
+    #            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINVM', '-DH5DATA'],),
+
+
     # GCC targets.
-    Target(name='T_CLEAN',
-           stats_collectors=[FL_SP],
-           flags=['-O0'],),
-    Target(name='T_O1',
-           stats_collectors=[FL_SP],
-           flags=['-O1', '-march=native'],),
-    Target(name='T_O2',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native'],),
-    Target(name='T_O2FM',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-ffast-math'],),
-    Target(name='T_O2ULLB',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-floop-block'],),
-    Target(name='T_O2ULFM',
-           stats_collectors=[FL_SP],
+    # Target(name='T_O1_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O1', '-march=native'],),
+    # Target(name='T_O2_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O2', '-march=native'],),
+    # Target(name='T_O2FM_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O2', '-ffast-math'],),
+
+    Target(name='T_O2ULFM_BASE',
+        #    stats_collectors=[FL_SP],
            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
 
-    Target(name='T_O3',
-           stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native'],),
-    Target(name='T_O3UL',
-           stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-funroll-loops'],),
-    Target(name='T_O3LB',
-           stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-floop-block'],),
-    Target(name='T_Ofast',
-           stats_collectors=[FL_SP],
-           flags=['-Ofast', '-march=native'],),
-    Target(name='T_OfastUL',
-           stats_collectors=[FL_SP],
-           flags=['-Ofast', '-march=native', '-funroll-loops'],),
-    Target(name='T_OfastUL',
-           stats_collectors=[FL_SP],
-           flags=['-Ofast', '-march=native', '-ffast-math'],),
+    Target(name='T_O2ULFM_OPT1',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DINV_M'],),
+
+    Target(name='T_O2ULFM_OPT2',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M'],),
+
+    Target(name='T_O2ULFM_OPT3',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
+
+
+    Target(name='T_O3LBFM_BASE',
+           #    stats_collectors=[FL_SP],
+           flags=['-O3', '-march=native', '-ffast-math'],),
+
+    Target(name='T_O3LBFM_OPT1',
+           #    stats_collectors=[FL_SP],
+           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M'],),
+
+    Target(name='T_O3LBFM_OPT2',
+           #    stats_collectors=[FL_SP],
+           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M', '-DLINSOLVE'],),
+
+    Target(name='T_O3LBFM_OPT3',
+           #    stats_collectors=[FL_SP],
+           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M', '-DLINSOLVE', '-DREUSE'],),
+
+    # Target(name='T_O3_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native'],),
+    # Target(name='T_O3UL_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native', '-funroll-loops'],),
+    # Target(name='T_O3LB_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native', '-floop-block'],),
+    # Target(name='T_O3LBFM_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native', '-ffast-math'],),
+
+    # Target(name='T_Ofast_BASE',
+    #        #    stats_collectors=[FL_SP],
+    #        flags=['-Ofast', '-march=native'],),
+    # Target(name='T_Ofast_OPT',
+    #        #    stats_collectors=[FL_SP],
+    #        flags=['-Ofast', '-march=native', '-DLINSOLVE'],),
+    # Target(name='T_OfastUL_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-Ofast', '-march=native', '-funroll-loops'],),
+    # Target(name='T_OfastUL_GCC',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-Ofast', '-march=native', '-ffast-math', '-fguess-branch-probability'],),
 
     # Clang targets.
-    Target(name='T_CLEAN_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O0'],),
-    Target(name='T_O1_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O1', '-march=native'],),
-    Target(name='T_O2_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native'],),
-    Target(name='T_O2FM_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-ffast-math'],),
-    Target(name='T_O2UL_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops'],),
-    Target(name='T_O2ULFM_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
-    Target(name='T_O3_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native'],),
-    Target(name='T_O3UL_CLANG',
-           comp='clang',
-           stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-funroll-loops'],),
+    # Target(name='T_O1_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O1', '-march=native'],),
+    # Target(name='T_O2_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O2', '-march=native'],),
+    # Target(name='T_O2FM_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O2', '-ffast-math'],),
+    # Target(name='T_O2UL_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O2', '-march=native', '-funroll-loops'],),
+    # Target(name='T_O2ULFM_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
+    # Target(name='T_O3_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native'],),
+    # Target(name='T_O3UL_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native', '-funroll-loops'],),
+    # Target(name='T_O3ULFM_CLANG',
+    #        comp='clang',
+    #        stats_collectors=[FL_SP],
+    #        flags=['-O3', '-march=native', '-funroll-loops', '-ffast-math'],),
 ]
 
 """ Directory handlers """
@@ -144,66 +196,29 @@ def runner(t: Target, log_file):
                         return f'@! Error running {t.name}/headless (likwid-perf)'
                 res.append(merge_collected(collected))
             stats_file.write(dumps(res))
-            # run_file.write(output)
-            # collect_res = collect1(
-            #     sc, output, stats_file, log_file, t.flags)
-            # if(collect_res is not None):
-            #     return collect_res
-
             bw()
             print(f'@ Collected performance stats: {t.name}/stats')
             return res
 
         else:
-            run_res = run('./headless', shell=False,
-                          capture_output=True, env=env)
-
-            if(run_res.returncode == 0):
-                bw()
-                return None
-
-            return f'@! Error running {t.name}/headless'
-
-    # if(compile_res.returncode == 0):
-    #     run_res = None
-    #     if(t.stats_collectors is not None and COLLECT):
-    #         for sc in t.stats_collectors:
-    #             outputs = []
-    #             for i in range(RT):
-    #                 print(f'@ Compiled {t.name}\n@ Running ./headless i = {i}')
-    #                 run_res = run(['likwid-perfctr', '-C', f'{CORE}', '-g', sc[0], '-m', '-O',
-    #                               './headless'], shell=False, capture_output=True, env=env)
-    #                 if(run_res.returncode == 0):
-    #                     output = run_res.stdout.decode('ascii')
-    #                     run_file.write(output)
-    #                     outputs.append(output)
-    #                 else:
-    #                     return f'@! Error running {t.name}/headless (likwid-perf)'
-
-    #             collect_res = collect(
-    #                 sc, outputs, stats_file, log_file, t.flags)
-    #             if(collect_res is not None):
-    #                 return collect_res
-
-    #         bw()
-    #         print(f'@ Collected performance stats: {t.name}/stats')
-    #         return None
-
-    #     else:
-    #         run_res = run('./headless', shell=False,
-    #                       capture_output=True, env=env)
-
-    #         if(run_res.returncode == 0):
-    #             bw()
-    #             return None
-
-    #         return f'@! Error running {t.name}/headless'
+            res = []
+            for i in range(RT):
+                run_res = run('./headless', shell=False,
+                              capture_output=True, env=env)
+                if(run_res.returncode == 0):
+                    res.append(collect1(None, run_res.stdout.decode(
+                        'ascii'), stats_file, log_file, t.flags))
+                else:
+                    return f'@! Error running {t.name}/headless'
+            stats_file.write(dumps(res))
+            bw()
+            return res
 
     else:
         bw()
         print(compile_res.stdout)
         log_file.write(compile_res.stdout.decode('ascii'))
-        return f'@! Error compiling {t.name}. See run.log for more details.'
+        return f'@! Error compiling{t.name}. See run.log for more details.'
 
 
 def merge_collected(collected: list):
@@ -256,26 +271,35 @@ def collect(sc, outputs, stats_file, log_file, flags):
 
 
 def collect1(sc, output, stats_file, log_file, flags):
-    print(f'@ Collecting data for group: {sc[0]}')
+    
+    # print(f'@ Collecting data for group: {sc[0]}')
     try:
         lines = output.splitlines(keepends=False)
         regions_ids = []
+
         for id in range(0, len(lines)):
             line = lines[id]
             if(line.startswith('TABLE') and any(map(lambda x: 'Metric' in x, line.split(',')))):
                 regions_ids.append(id)
+        
         stats = {}
-        for id in regions_ids:
-            region_name = lines[id].split(',')[1].split(' ')[1]
-            r_id = 1
-            region_line = lines[id+r_id].split(',')
-            stats[region_name] = {}
-            while(region_line[0] != 'TABLE' and id+r_id < len(lines) - 1):
-                if(region_line[0] in sc[1]):
-                    region_stats = stats[region_name]
-                    region_stats[region_line[0]] = region_line[1]
-                r_id += 1
+
+        if(list(filter(lambda x: x.startswith("# CELL_MS"), lines)) != []):
+            line = next(x for x in lines if x.startswith("# CELL_MS"))
+            stats['CELL_MS'] = float(line.split(':')[1])
+
+        if(sc is not None):
+            for id in regions_ids:
+                region_name = lines[id].split(',')[1].split(' ')[1]
+                r_id = 1
                 region_line = lines[id+r_id].split(',')
+                stats[region_name] = {}
+                while(region_line[0] != 'TABLE' and id+r_id < len(lines) - 1):
+                    if(region_line[0] in sc[1]):
+                        region_stats = stats[region_name]
+                        region_stats[region_line[0]] = region_line[1]
+                    r_id += 1
+                    region_line = lines[id+r_id].split(',')
         return stats
     except Exception as err:
         log_file.write(str(err))
@@ -293,7 +317,7 @@ def configure(t, log_file, run_size):
     if t.comp is not None:
         env['CC'] = t.comp
 
-    t.flags.append(f'-DNtimes={run_size}')
+    t.flags.append(f'-DN={run_size}')
 
     if(t.stats_collectors is not None):
         t.flags.append('-DLIKWID_PERFMON')

@@ -23,6 +23,8 @@ marp: true
 *Ancho de banda máximo soportado:* **41.8 GB/s**
 *Benchmark ERT*: **83.7 GFLOPs/sec.**
 
+---
+
 **MEMORIA:**
 
 | Tipo   | Tamaño | Ancho de banda (ERT) |
@@ -32,17 +34,13 @@ marp: true
 | *L3*   | 12MB   | 130.2 GB/s           |
 | *DRAM* | 16GB   | 27.9 GB/s.           |
  
-- *L1* en realidad se divide en *L1I*, *L1D* ambos de **32kB**.
+- *L1* se divide en *L1I*, *L1D* ambos de **32kB**.
 
 ---
 
-# Benchmark
-
-
+# Benchmark ERT
 
 ![height:16cm](ert.jpg )
-
-<!-- https://relate.cs.illinois.edu/course/cs598apk-f18/f/demos/upload/perf/Using%20Performance%20Counters.html -->
 
 ---
 
@@ -59,9 +57,20 @@ marp: true
 
 ---
 
+# Medidas de rendimiento
+
+- GFLOPs e IPC.
+
+## likwid
+Para realizar mediciones utilizamos la librería *likwid* que provee una interfaz para establecer regiones de conteo dentro del código.
+
+
+
+--- 
+
 # Flags
 
-Con el objetivo de mejorar la performance del programa base se analizó la perfomance del código compilando con *gcc* y *clang* utilizando diferentes flags de compilación.
+Estudiamos los resultados de compilar el código combinando distintas banderas de compilación y compiladores (*gcc* y *clang*)
 * -O1
 * -O2
 * -O3
@@ -72,70 +81,111 @@ Con el objetivo de mejorar la performance del programa base se analizó la perfo
 
 ---
 
+# Experimentos
+
+Luego de implementar algunos scripts de automatización, experimentamos con las distintas banderas de compilación un total de 10 veces por compilación y tamaño. 
+
+* Total: 18 combinaciones x 2 tamaños (64 y 256) x 10 veces = **360**.
 
 ---
 
-<!-- 
-Cosas para hacer
-================
+# Resultados
 
-1.  Encontrar una métrica de performance del problema.
-    :   -   Que sea comparable **para cualquier tamaño del problema**.
-        -   Mejor performance para mayores valores.
-        -   Idealmente FLOPS/IPS si se puede calcular.
+![alt](../total.jpg)
 
-2.  Mejorar la performance cambiando cosas, por ejemplo:
-    :   -   Compiladores. (GCC, Clang, Intel, NVIDIA/PGI?)
-        -   Opciones de compilación. (explorar mucho)
-        -   Mejoras algorítmicas y/o numéricas. (si hubiera, e.g. RNG)
-        -   Optimizaciones de cálculos. (que no haga ya el compilador)
-        -   Unrolling de loops y otras fuentes de ILP. (nuevamente, que
-            no haga el compilador)
-        -   Sistema de memoria: Hugepages y estrategias cache-aware.
-            (altamente probable que no rindan hasta agregar paralelismo,
-            ni para sistemas pequeños)
+---
 
-Hints
-=====
+# Conclusiones
 
--   Tomar decisiones sobre dónde mirar primero en el código haciendo
-    profiling. (perf, VTune)
--   Automatizar **TODO**, es una inversión para todo el cuatrimestre:
-    :   -   Compilación.
-        -   Tests para detectar rápido problemas en el código.
-        -   Ejecución y medición de performance.
-        -   Procesamiento de la salida del programa. (salida en CSV es
-            fácil de ingerir)
-        -   Generación de gráficas.
+Los resultados de los experimentos nos permiten concluir que las flags que más *exprimen* nuestro código **base** son las siguientes: 
 
-Entrega
-=======
+* -O2, -march=native, -funroll-loops
+* -O3, -march=native, -ffast-math
+* -Ofast, -march=native
 
-Presentación de los resultados en clase (10 minutos) e informe breve.
 
--   Características del hardware y del software:
-    :   -   CPU: modelo y velocidad.
-            :   -   Poder de cómputo de un core medido con Empirical
-                    Roofline Toolkit o LINPACK.
 
-        -   Memoria: capacidad, velocidad, cantidad de canales ocupados.
-            :   -   Ancho de banda para un core medido con Empirical
-                    Roofline Toolkit o STREAM.
+---
+# Profiling
 
-        -   Compiladores: nombres y versiones.
-        -   Sistema Operativo: nombre, versión, arquitectura.
+Utilizamos **perf 5.4.101** y encontramos que la función que más trabajo toma en la ejecución es *lin_solve*.
 
--   Gráficas de scaling para la versión más rápida obtenida.
-    :   -   Performance vs. tamaño del problema. (usualmente lin-log)
-        -   No va a dar scaling lineal, hay que explorar tamaños
-            encontrando relaciones con la jerarquía de memoria.
-        -   [Considerar la calidad estadística de los
-            resultados](https://www.youtube.com/watch?v=r-TLSBdHe1A).
 
--   Optimizaciones probadas y sus resultados.
-    :   -   Explicación y mediciones que validen la explicación.
-        -   [Intentar medir las
-            causas](https://travisdowns.github.io/blog/2019/06/11/speed-limits.html)
-            además de la performance.
+![alt](../lab1/perf2.png)
+En particular la operación más cara es: 
 
--->
+![alt](../lab1/perf1.png)
+
+---
+
+# Optimizaciones
+
+ La operación *vdivss* es la más cara por lo que optamos por cambiarla por su **inverso multiplicativo.**
+```c
+x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + 
+x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c // Original
+
+float inv_c = 1.0f / c;
+
+x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + 
+x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c; // Optimizado
+```
+
+### En perf
+
+![alt](../lab1/perf3.png)
+
+Como vemos, la división fue intercambiada por la multiplicación bajando su costo.
+
+---
+
+# Optimizaciones (cont.)
+
+**Criterio de convergencia.** El código original de la función *lin_solve* no utilizaba un criterio de convergencia claro.
+
+* Medimos el error relativo con el que *convergía* originalmente y acotamos las iteraciones en base a ese error.
+
+```c
+float acum;
+do {
+    acum = 0.0f;
+    for (unsigned int i = 1; i <= n; i++) 
+        for (unsigned int j = 1; j <= n; j++) {
+        x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;    
+        acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
+        x[IX(i, j)] = x_new;
+        }
+    }
+    acum = acum / (n * n);
+    set_bnd(n, b, x);
+} while (acum > 1e-1f);
+```
+
+---
+# Optimizaciones (cont.)
+
+Por último observamos que el patrón de accesos a memoria utilizado por la función *lin_solve* nos permitía dar por sentado que se podría reutilizar alguno de los valores calculados. (en cada iteración, se reutiliza el valor de x_new).
+
+![alt](matriz.png)
+
+La última optimización realizada consiste en calcular y reutilizar este valor en cada iteracion con **j > 1**.
+
+---
+
+# Cambio de métrica
+
+El cambio del criterio de convergencia redujo considerablemente el tiempo de ejecución del programa. Al analizar los resultados con la métrica GFLOPs observamos que el programa supuestamente bajó su performance, pero la diferencia radica en que éste ahora realiza muchas menos operaciones.
+
+Por lo que decidimos cambiar de métrica a celdas calculadas por micro segundo.
+
+---
+
+# Resultado optimizaciones
+
+![OPTS]()
+
+---
+
+# Correctitud de las optimizaciones
+
+![GIF]()
