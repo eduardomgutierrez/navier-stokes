@@ -1,11 +1,38 @@
 #include "solver.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <assert.h>
+#include "lin_solve_ispc.h"
 
 #define ABS(x) x < 0 ? -x : x
 
+#ifndef N
+#define N 64
+#endif
+
 // Cambiamos a column major.
-#define IX(i, j) ((i) * (n + 2) + (j))
+// #define IX(i, j) ((i) * (n + 2) + (j))
+
+#ifdef RB
+static size_t rb_idx(size_t x, size_t y, size_t dim) {
+    assert(dim % 2 == 0);
+    size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
+    
+    #ifdef RBC
+    // Por columnas
+    size_t offset = (x / 2) + y * (dim / 2);
+    #else
+    // Por filas
+    size_t offset = (y / 2) + x * (dim / 2);
+    #endif
+    
+    return base + offset;
+}
+    #define IX(x,y) (rb_idx((x),(y),(N+2)))
+#else
+    #define IX(i, j) ((i) + (N + 2) * (j))
+#endif
+
 
 
 // Simplificar
@@ -52,7 +79,7 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
 #ifdef LINSOLVE
     float acum;
 
-#ifdef REUSE
+    #ifdef REUSE
     float x_new;
     do {
         acum = 0.0f;
@@ -65,6 +92,7 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
                 x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
             #endif
             
+            // TODO: Ver 0 en el denominador. Sumar solo ABS si x[IX(ij)] == 0
             acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
             x[IX(i, j)] = x_new;
 
@@ -84,7 +112,7 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         set_bnd(n, b, x);
     } while (acum > 1e-1f);
     
-#else
+    #else
     float x_new;
     do {
         acum = 0.0f;
@@ -104,17 +132,31 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         set_bnd(n, b, x);
     } while (acum > 1e-1f);
 
-#endif
+    #endif
 
 #else
-    for (unsigned int k = 0; k < 20; k++) {
-        for (unsigned int i = 1; i <= n; i++) {
-            for (unsigned int j = 1; j <= n; j++) {
-                x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-            }
-        }
+    for (unsigned int k = 0; k < 2 ; k++) {
+        #ifdef INV_M
+        lin_solve_vect(n ,x, x0, a, inv_c);
+        #else
+        lin_solve_vect(n ,x, x0, a, 1.0f / c);
+        #endif
+
+        // for (unsigned int i = 1; i <= n; i++) {
+        //     for (unsigned int j = 1; j <= n; j++) {
+        //         x[IX(i, j)] = 
+        //         (x0[IX(i, j)] 
+        //         + a * (x[IX(i - 1, j)]
+        //         + x[IX(i + 1, j)]
+        //         + x[IX(i, j - 1)]
+        //         + x[IX(i, j + 1)])) / c;
+        //     }
+        // }
         set_bnd(n, b, x);
     }
+#endif
+
+#ifdef VECT_LINSOLVE
 #endif
 }
 

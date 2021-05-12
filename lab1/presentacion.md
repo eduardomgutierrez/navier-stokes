@@ -9,38 +9,37 @@ marp: true
 ### Proyecto: Navier - Stokes
 
 ### Alumnos:
-- Eduardo Mario Gutierrez
+- Eduardo, Mario Gutierrez
 - Stizza, Federico
   
 ---
 
 # Hardware
 
+**CPU:**
 
-**CPU:** Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-
-*Velocidad:* **800MHz - 4500MHz**
+*Modelo:* Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+*Velocidad mín:* **800MHz**
+*Velocidad máx:* **4500MHz**
 *Ancho de banda máximo soportado:* **41.8 GB/s**
-*Benchmark ERT*: **83.7 GFLOPs/sec.**
 
 ---
+# Hardware (cont.)
 
 **MEMORIA:**
-
 | Tipo   | Tamaño | Ancho de banda (ERT) |
 | ------ | ------ | -------------------- |
 | *L1*   | 32kB   | 202.9 GB/s           |
 | *L2*   | 256kB  | 166.6 GB/s           |
 | *L3*   | 12MB   | 130.2 GB/s           |
-| *DRAM* | 16GB   | 27.9 GB/s.           |
+| *DRAM* | 2x8GB   | 27.9 GB/s.           |
  
 - *L1* se divide en *L1I*, *L1D* ambos de **32kB**.
-
 ---
 
 # Benchmark ERT
 
-![height:16cm](ert.jpg )
+![height:13cm](ert.jpg )
 
 ---
 
@@ -91,7 +90,7 @@ Luego de implementar algunos scripts de automatización, experimentamos con las 
 
 # Resultados
 
-![alt](../total.jpg)
+![height:16cm](grafico1.jpeg)
 
 ---
 
@@ -158,7 +157,7 @@ do {
     }
     acum = acum / (n * n);
     set_bnd(n, b, x);
-} while (acum > 1e-1f);
+} while (acum > 1e-1f); // Criterio de convergencia.
 ```
 
 ---
@@ -174,18 +173,22 @@ La última optimización realizada consiste en calcular y reutilizar este valor 
 
 # Cambio de métrica
 
-El cambio del criterio de convergencia redujo considerablemente el tiempo de ejecución del programa. Al analizar los resultados con la métrica GFLOPs observamos que el programa supuestamente bajó su performance, pero la diferencia radica en que éste ahora realiza muchas menos operaciones.
+El cambio del criterio de convergencia redujo considerablemente el tiempo de ejecución del programa. Al analizar los resultados con la métrica GFLOPs observamos que el programa supuestament|e bajó su performance, pero la diferencia radica en que éste ahora realiza muchas menos operaciones.
 
 Por lo que decidimos cambiar de métrica a celdas calculadas por micro segundo.
 
 ---
 
+# Comparación de métricas
+
+![height:16cm](grafico2.jpeg)
+
+---
+
 # Resultado optimizaciones
 
-![OPTS]()
+![height:16cm](grafico3.jpeg)
 
 ---
 
 # Correctitud de las optimizaciones
-
-![GIF]()

@@ -20,14 +20,36 @@
 
 #include "solver.h"
 #include "wtime.h"
+#include <assert.h>
 
 /* macros */
 
-#define IX(i, j) ((i) + (N + 2) * (j))
 
-// #ifndef N 
-#define N 256
-// #endif
+
+#ifndef N 
+#define N 64
+#endif
+
+#ifdef RB
+static size_t rb_idx(size_t x, size_t y, size_t dim) {
+    assert(dim % 2 == 0);
+    size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
+    
+    #ifdef RBC
+    // Por columnas
+    size_t offset = (x / 2) + y * (dim / 2);
+    #else
+    // Por filas
+    size_t offset = (y / 2) + x * (dim / 2);
+    #endif
+    
+    return base + offset;
+}
+    #define IX(x,y) (rb_idx((x),(y),(N+2)))
+#else
+    #define IX(i, j) ((i) + (N + 2) * (j))
+#endif
+
 
 /* global variables */
 
@@ -71,6 +93,8 @@ static void free_data(void)
     if (dens_prev) {
         free(dens_prev);
     }
+
+    
 }
 
 static void clear_data(void)

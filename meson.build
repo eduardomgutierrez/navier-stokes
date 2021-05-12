@@ -2,27 +2,27 @@ project('navier_stokes', 'c', default_options: [ 'warning_level=2' ])
 
 cc = meson.get_compiler('c')
 
-llikwid_dep = cc.find_library('likwid', required: true )
+llikwid_dep = cc.find_library('likwid', required: true)
 
+hdf5 = dependency('hdf5', language: 'c')
 
-# hdf5_dep = cc.find_library('hdf5', dirs: '/usr/include/hdf5/serial/', required: true )
+# ispc = find_program('ispc')
 
-hddd = dependency('hdf5', language: 'c')
+# ispc_gen = generator(ispc, arguments: ['lin_solve.ispc', '-h', 'lin_solve_ispc.h'], output: '@BASENAME@.h')
+
 
 headless = executable('headless',
-    [ 'headless.c', 'solver.c' ],
-    # link_args: ['-I/home/federico/Escritorio/hdf5/HDF5-1.12.0-Darwin/HDF_Group/HDF5/1.12.0/include', 
-    # '-L/home/federico/Escritorio/hdf5/HDF5-1.12.0-Darwin/HDF_Group/HDF5/1.12.0/lib', '-lhdf5', '-lm'],
-    dependencies: [hddd, llikwid_dep]
-)
+    [ 'headless.c', 'solver.c'], objects: 'lin_solve_ispc',
+    dependencies: [hdf5, llikwid_dep])
 
 gl_dep = cc.find_library('GL', required: false)
 glu_dep = cc.find_library('GLU', required: false)
 glut_dep = cc.find_library('glut', required: false)
 
 
+
+
 demo = executable('demo',
-     [ 'demo.c', 'solver.c' ],
-     dependencies: [ gl_dep, glu_dep, glut_dep ],
-     link_args: ['-I/${PAPI_DIR}/include', '-L/${PAPI_DIR}/lib', '-lpapi'],
- )
+     ['demo.c', 'solver.c', 'solver.h'], objects: 'lin_solve_ispc',
+     dependencies: [gl_dep, glu_dep, glut_dep])
+

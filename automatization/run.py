@@ -15,8 +15,8 @@ COLLECT = False         # Collect perf data.
 RT = 1
 
 # GFLOPs, IPC, CellsXTime
-# SIZES = [64,256]
-SIZES = np.logspace(np.log10(65), np.log10(1000), 20, dtype= np.int32)
+SIZES = [64]
+# SIZES = np.logspace(np.log10(65), np.log10(1000), 20, dtype= np.int32)
 
 
 """ Counter groups, and collect metadata """
@@ -62,6 +62,9 @@ targets = [
     #        stats_collectors=[FL_SP],
     #        flags=['-O2', '-ffast-math'],),
 
+
+    
+
     Target(name='T_O2ULFM_BASE',
         #    stats_collectors=[FL_SP],
            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
@@ -76,12 +79,33 @@ targets = [
 
     Target(name='T_O2ULFM_OPT3',
         #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE', '-ftree-vectorize'],),
 
+    Target(name='T_RBC',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec', '-fopt-info-vec-missed'],),
+
+    Target(name='T_ISPC',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-g'],),
+
+    Target(name='T_RBF',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-ftree-vectorize',],),
+
+    Target(name='T_RBC_C',
+           comp='clang',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-Rpass=loop' '-Rpass-missed=loop' '-Rpass-analysis=loop' ],),
+
+    Target(name='T_RBF_C',
+           comp='clang',
+        #    stats_collectors=[FL_SP],
+           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-ftree-vectorize','-fopt-info-vec', '-fopt-info-vec-missed'],),
 
     Target(name='T_O3LBFM_BASE',
            #    stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-ffast-math'],),
+           flags=['-O3', '-march=native', '-ffast-math', '-DH5DATA'],),
 
     Target(name='T_O3LBFM_OPT1',
            #    stats_collectors=[FL_SP],
@@ -93,7 +117,7 @@ targets = [
 
     Target(name='T_O3LBFM_OPT3',
            #    stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M', '-DLINSOLVE', '-DREUSE'],),
+           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M', '-DLINSOLVE', '-DREUSE', '-DH5DATA'],),
 
     # Target(name='T_O3_GCC',
     #        stats_collectors=[FL_SP],
@@ -330,7 +354,6 @@ def configure(t, log_file, run_size):
         fw(t.name)
 
         res = run(wipe_cmd, shell=False, capture_output=True, env=env)
-
         log_file.write(res.stdout.decode('ascii'))
 
         bw()

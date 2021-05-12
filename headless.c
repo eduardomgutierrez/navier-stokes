@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 
 /* likwid library */
@@ -35,10 +36,35 @@
 #define LIKWID_MARKER_GET(regionTag, nevents, events, time, count)
 #endif
 
+/* global variables */
+#ifndef N
+#define N 64
+#endif
+
 /* macros */
 
 // #define IX(i, j) ((i) + (N + 2) * (j))
-#define IX(i, j) ((i) * (N + 2) + (j))
+// #define IX(i, j) ((i) * (N + 2) + (j))
+
+#ifdef RB
+static size_t rb_idx(size_t x, size_t y, size_t dim) {
+    assert(dim % 2 == 0);
+    size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
+    
+    #ifdef RBC
+    // Por columnas
+    size_t offset = (x / 2) + y * (dim / 2);
+    #else
+    // Por filas
+    size_t offset = (y / 2) + x * (dim / 2);
+    #endif
+    
+    return base + offset;
+}
+    #define IX(x,y) (rb_idx((x),(y),(N+2)))
+#else
+    #define IX(i, j) ((i) + (N + 2) * (j))
+#endif
 
 
 #ifndef Ntimes
@@ -48,11 +74,6 @@
 /* external definitions (from solver.c) */
 extern void dens_step(int n, float* x, float* x0, float* u, float* v, float diff, float dt);
 extern void vel_step(int n, float* u, float* v, float* u0, float* v0, float visc, float dt);
-
-/* global variables */
-#ifndef N
-#define N 64
-#endif
 
 static int count;
 static float dt, diff, visc;
@@ -251,7 +272,8 @@ static void one_step(double* rct, double *vel, double* dns)
     dens_ns_p_cell += (wtime() - start_t) / (N * N);
 
 #ifdef H5DATA
-    int status = writeFields(H5FILE_NAME, dens, u, v, it);
+    // int status = 
+    writeFields(H5FILE_NAME, dens, u, v, it);
 #endif
 
     *rct = react_ns_p_cell;
@@ -321,7 +343,8 @@ int main(int argc, char** argv)
 #ifdef H5DATA
     strcpy(H5FILE_NAME, "data.h5");
 
-    int status = create_H5_2Ddata(H5FILE_NAME);
+    // int status = 
+    create_H5_2Ddata(H5FILE_NAME);
 #endif
 
     LIKWID_MARKER_START("TOTAL");
