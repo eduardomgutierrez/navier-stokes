@@ -18,13 +18,13 @@ static size_t rb_idx(size_t x, size_t y, size_t dim) {
     assert(dim % 2 == 0);
     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
     
-    #ifdef RBC
-    // Por columnas
-    size_t offset = (x / 2) + y * (dim / 2);
-    #else
+    // #ifdef RBC
+    // // Por columnas
+    // size_t offset = (x / 2) + y * (dim / 2);
+    // #else
     // Por filas
     size_t offset = (y / 2) + x * (dim / 2);
-    #endif
+    // #endif
     
     return base + offset;
 }
@@ -43,9 +43,11 @@ static size_t rb_idx(size_t x, size_t y, size_t dim) {
         x = tmp;         \
     }
 
-typedef enum { NONE = 0,
-               VERTICAL = 1,
-               HORIZONTAL = 2 } boundary;
+// typedef enum { NONE = 0,
+//                VERTICAL = 1,
+//                HORIZONTAL = 2 } boundary;
+
+typedef enum boundary boundary;
 
 static void add_source(unsigned int n, float* x, const float* s, float dt)
 {
@@ -135,12 +137,12 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
     #endif
 
 #else
-    for (unsigned int k = 0; k < 2 ; k++) {
-        #ifdef INV_M
-        lin_solve_vect(n ,x, x0, a, inv_c);
-        #else
-        lin_solve_vect(n ,x, x0, a, 1.0f / c);
-        #endif
+    for (unsigned int k = 0; k < 20 ; k++) {
+        // #ifdef INV_M
+        // lin_solve_vect(n ,x, x0, a, inv_c);
+        // #else
+        // #endif
+        lin_solve_vect(n+2 ,b, x, x0, a, 1.0f / c);
 
         // for (unsigned int i = 1; i <= n; i++) {
         //     for (unsigned int j = 1; j <= n; j++) {

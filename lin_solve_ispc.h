@@ -12,6 +12,19 @@
 #ifdef __cplusplus
 namespace ispc { /* namespace */
 #endif // __cplusplus
+///////////////////////////////////////////////////////////////////////////
+// Enumerator types with external visibility from ispc code
+///////////////////////////////////////////////////////////////////////////
+
+#ifndef __ISPC_ENUM_boundary__
+#define __ISPC_ENUM_boundary__
+enum boundary {
+    NONE = 0,
+    VERTICAL = 1,
+    HORIZONTAL = 2 
+};
+#endif
+
 
 #ifndef __ISPC_ALIGN__
 #if defined(__clang__) || !defined(_MSC_VER)
@@ -32,7 +45,7 @@ namespace ispc { /* namespace */
 #if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 extern "C" {
 #endif // __cplusplus
-    extern void lin_solve_vect(const uint32_t n, float * x, const float * x0, float a, float inv_c);
+    extern void lin_solve_vect(uint32_t n, enum boundary b, float * x, const float * x0, float a, float inv_c);
 #if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 } /* end extern C */
 #endif // __cplusplus

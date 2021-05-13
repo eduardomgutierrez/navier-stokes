@@ -14,5 +14,8 @@ def id(x,n):
         print(i,j)
 
 if __name__ == '__main__':
-    for i in range(36):
-        id(i, 6)
+    id(32, 64)
+    id(2048,64)
+    id(2112,64)
+    id(2080,64)
+    id(2081,64)
