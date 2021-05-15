@@ -80,6 +80,7 @@ def runner(t: Target, run_file, log_file):
     run_file.write(compile_res.stdout.decode('utf-8'))
 
     if(JUSTCOMPILE):
+        bw()
         return
 
     if(compile_res.returncode == 0):
