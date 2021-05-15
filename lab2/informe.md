@@ -40,9 +40,8 @@ Por lo tanto, decidimos agregar fuentes en distintas partes de la matriz, no sol
 | N    | Cell/ms |
 | ---- | ------- |
 | 64   | 5.922   |
-| 256  | 5.823   |
 | 512  | 5.745   |
-| 1024 | 2.997   |
+| 1024 | 8.129   |
 
 Podemos observar que la performance se mantiene estable para los tamaños pequeños y para el tamaño más grande baja, lo que creemos que es relativamente normal teniendo en cuenta que a mayor tamaño se agrega más cantidad de fuentes y por lo tanto tiene más carga que para los otros problemas.
 
@@ -56,9 +55,22 @@ Por lo que consideramos estos valores como la base de comparación.
 | GCC-                 |               |
 | CLANG-               |               |
 | CLANG-               |               |
-| ICC-               |               |
+| ICC-                 |               |
 | CLANG-               |               |
+
+### Ayudando al compilador
+
+Uno de los mensajes que encontramos en los reportes de autovectorizacion en la compilacion fue: 
+- Reemplazamos en todos los loops, la variable del tamaño n, por una constante definida en compile-time. 
 
 # Vectorización explícita (ISPC)
 
+
+
 <!-- source /opt/intel/oneapi/setvars.sh intel64 -->
+
+<!-- ../headless.c:184:5: remark: loop not vectorized: cannot prove it is safe to reorder memory operations; allow reordering by specifying '#pragma clang loop vectorize(enable)' before the loop. If the arrays will always be independent specify '#pragma clang loop vectorize(assume_safety)' before the loop or provide the '__restrict__' qualifier with the independent array arguments. Erroneous results will occur if these options are incorrectly applied! [-Rpass-analysis=loop-vectorize] -->
+
+<!-- ../solver.c:49:5: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize] -->
+
+<!-- https://postgrespro.com/list/thread-id/2495746 -->

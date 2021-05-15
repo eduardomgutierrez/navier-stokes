@@ -46,7 +46,7 @@ static void add_source(unsigned int n, float* x, const float* s, float dt)
 
 static void set_bnd(unsigned int n, boundary b, float* x)
 {
-    for (unsigned int i = 1; i <= n; i++) {
+    for (unsigned int i = 1; i < n + 1; i++) {
         x[IX(0, i)] = b == VERTICAL ? -x[IX(1, i)] : x[IX(1, i)];
         x[IX(n + 1, i)] = b == VERTICAL ? -x[IX(n, i)] : x[IX(n, i)];
         x[IX(i, 0)] = b == HORIZONTAL ? -x[IX(i, 1)] : x[IX(i, 1)];
@@ -58,60 +58,77 @@ static void set_bnd(unsigned int n, boundary b, float* x)
     x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
 }
 
-static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, float a, float c)
+static void lin_solve(unsigned int n, boundary b, float* restrict x, const float* restrict x0, float a, float c)
 {
 
-#ifdef INV_M
+    #ifdef INV_M
     float inv_c = 1.0f / c;
-#endif
+    #endif
 
-#ifdef LINSOLVE
+    #ifdef LINSOLVE
     float acum;
+    int cont;
 
-#ifdef REUSE
+    #ifdef REUSE
     float x_new;
     do {
         acum = 0.0f;
-        for (unsigned int i = 1; i <= n; i++) {
+        cont = 0;
+        // #pragma ivdep
+        // #pragma clang loop vectorize(assume_safety)
+        // cambio a < n+1
+        for (unsigned int i = 1; i < n + 1; i++) {
             unsigned int j = 1;
-
-#ifdef INV_M
+            
+            // 
+            #ifdef INV_M
             x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-#else
+            #else
             x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-#endif
+            #endif
 
-            // TODO: Ver 0 en el denominador. Sumar solo ABS si x[IX(ij)] == 0
-            acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
+            if (x_new > 1e-5f) {
+                cont++;
+                acum += ABS(x_new - x[IX(i, j)]);
+            }
             x[IX(i, j)] = x_new;
 
-            for (j = 2; j <= n; j++) {
+            // #pragma ivdep
+            // #pragma clang loop vectorize(assume_safety)
+            // cambio a < n+1
+            for (j = 2; j < n + 1; j++) {
 
-#ifdef INV_M
+                #ifdef INV_M
                 x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-#else
+                #else
                 x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-#endif
+                #endif
 
-                acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
+                if (x_new > 1e-5f) {
+                    cont++;
+                    acum += ABS(x_new - x[IX(i, j)]);
+                }
                 x[IX(i, j)] = x_new;
             }
+            acum = acum / (float) cont;
+            set_bnd(n, b, x);
         }
-        acum = acum / (n * n);
-        set_bnd(n, b, x);
     } while (acum > 1e-1f);
 
-#else
+    #else
     float x_new;
     do {
         acum = 0.0f;
-        for (unsigned int i = 1; i <= n; i++) {
-            for (unsigned int j = 1; j <= n; j++) {
-#ifdef INV_M
+        // #pragma ivdep
+        // #pragma clang loop vectorize(assume_safety)
+        // cambio a < n+1
+        for (unsigned int i = 1; i < n + 1; i++) {
+            for (unsigned int j = 1; j < n + 1; j++) {
+                #ifdef INV_M
                 x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-#else
+                #else
                 x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-#endif
+                #endif
 
                 acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
                 x[IX(i, j)] = x_new;
@@ -120,19 +137,18 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         acum = acum / (n * n);
         set_bnd(n, b, x);
     } while (acum > 1e-1f);
+    #endif
+#else 
 
-#endif
-
-#else
-
-#ifdef VECT_LINSOLVE
-    for (unsigned int k = 0; k < 20; k++)
+    #ifdef VECT_LINSOLVE
+        // #pragma ivdep
+        // #pragma clang loop vectorize(assume_safety)
         lin_solve_vect(n + 2, b, x, x0, a, 1.0f / c);
-#else
-    for (unsigned int k = 0; k < 20; k++) {
+    #else
+        // cambio a < n+1
         for (unsigned int k = 0; k < 20; k++) {
-            for (unsigned int i = 1; i <= n; i++) {
-                for (unsigned int j = 1; j <= n; j++) {
+            for (unsigned int i = 1; i < n + 1; i++) {
+                for (unsigned int j = 1; j < n + 1; j++) {
                     x[IX(i, j)] = (x0[IX(i, j)]
                                    + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)]))
                         / c;
@@ -140,28 +156,26 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
             }
             set_bnd(n, b, x);
         }
-    }
-#endif
-
-
+    #endif
 #endif
 }
 
-    static void diffuse(unsigned int n, boundary b, float* x, const float* x0, float diff, float dt)
+    static void diffuse(unsigned int n, boundary b, float* restrict x, const float* x0, float diff, float dt)
     {
         float a = dt * diff * n * n;
         lin_solve(n, b, x, x0, a, 1 + 4 * a);
     }
 
     // Contar branch predictions.
-    static void advect(unsigned int n, boundary b, float* d, const float* d0, const float* u, const float* v, float dt)
+    static void advect(unsigned int n, boundary b, float* restrict d, const float* restrict d0, const float* restrict u, const float* restrict v, float dt)
     {
         int i0, i1, j0, j1;
         float x, y, s0, t0, s1, t1;
 
         float dt0 = dt * n;
-        for (unsigned int i = 1; i <= n; i++) {
-            for (unsigned int j = 1; j <= n; j++) {
+        // cambio a < n+1
+        for (unsigned int i = 1; i < n + 1; i++) {
+            for (unsigned int j = 1; j < n + 1; j++) {
                 x = i - dt0 * u[IX(i, j)];
                 y = j - dt0 * v[IX(i, j)];
                 if (x < 0.5f) {
@@ -188,10 +202,11 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         set_bnd(n, b, d);
     }
 
-    static void project(unsigned int n, float* u, float* v, float* p, float* div)
+    static void project(unsigned int n, float* restrict u, float* restrict v, float* restrict p, float* restrict div)
     {
-        for (unsigned int i = 1; i <= n; i++) {
-            for (unsigned int j = 1; j <= n; j++) {
+        // cambio a < n+1
+        for (unsigned int i = 1; i < n + 1; i++) {
+            for (unsigned int j = 1; j < n + 1; j++) {
                 div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]) / n;
                 p[IX(i, j)] = 0;
             }
@@ -201,8 +216,9 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
 
         lin_solve(n, NONE, p, div, 1, 4);
 
-        for (unsigned int i = 1; i <= n; i++) {
-            for (unsigned int j = 1; j <= n; j++) {
+#pragma loop distribute(enable)
+        for (unsigned int i = 1; i < n + 1; i++) {
+            for (unsigned int j = 1; j < n + 1; j++) {
                 u[IX(i, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
                 v[IX(i, j)] -= 0.5f * n * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
             }
@@ -211,7 +227,7 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         set_bnd(n, HORIZONTAL, v);
     }
 
-    void dens_step(unsigned int n, float* x, float* x0, float* u, float* v, float diff, float dt)
+    void dens_step(unsigned int n, float* restrict x, float* restrict x0, float* restrict u, float* restrict v, float diff, float dt)
     {
         add_source(n, x, x0, dt);
         SWAP(x0, x);
@@ -220,8 +236,9 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         advect(n, NONE, x, x0, u, v, dt);
     }
 
-    void vel_step(unsigned int n, float* u, float* v, float* u0, float* v0, float visc, float dt)
+    void vel_step(unsigned int n, float* restrict u, float* restrict v, float* restrict u0, float* restrict v0, float visc, float dt)
     {
+
         add_source(n, u, u0, dt);
         add_source(n, v, v0, dt);
         SWAP(u0, u);

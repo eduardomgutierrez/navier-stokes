@@ -4,7 +4,7 @@ from functools import reduce
 from json import load, dumps, JSONDecodeError
 from target import Target
 from subprocess import run
-from os import path as ph, chdir as ch, environ
+from os import path as ph, chdir as ch, environ, write
 import numpy as np
 
 
@@ -12,12 +12,11 @@ import numpy as np
 CORE = 1                # Selected core[s] to run the likwid-perfctr.
 COLLECT = False         # Collect perf data.
 
+# 
 RT = 1
 
 # GFLOPs, IPC, CellsXTime
-SIZES = [64]
-# SIZES = np.logspace(np.log10(65), np.log10(1000), 20, dtype= np.int32)
-
+SIZES = [66,258, 514, 1026]
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
@@ -32,36 +31,30 @@ L2 = ('L2CACHE', ['L2 request rate',
                   'L2 miss rate',
                   'L2 miss ratio'])
 
+JUSTCOMPILE = False
+
 # Agregar GCC a los targets.
 
 """ Defined targets """
 targets = [
 
-    # Lab 1
-    # Target(name='T_O2ULFM_BASE', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
-    # Target(name='T_O2ULFM_OPT1', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DINV_M'],),
-    # Target(name='T_O2ULFM_OPT2', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M'],),
-    # Target(name='T_O2ULFM_OPT3', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE', '-ftree-vectorize'],),
-
-    # Lab 2
-
-    # GCC
-    Target(name='T_RBGCC6', comp = 'gcc-7', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
-    Target(name='T_RBGCC9', comp = 'gcc-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
-    Target(name='T_RBGCC10', comp = 'gcc-10', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
-    
-    # Clang
-    Target(name='T_RBC11', comp = 'clang-11', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),
-    Target(name='T_RBC9', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
-    
-    # ICC
-    Target(name='T_RBICC', comp = 'icc', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-xHost', '-vec-report'],),
-
-    # Nvidia
-    Target(name='T_RBNVCC', comp = 'nvcc', flags=['-Xcompile -O2,-march=native', '--use_fast_math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '--extra-device-vectorization'],),
-    
+    # Autovectorization
+    Target(name='T_RBGCC6'   , comp = 'gcc-6'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
+    Target(name='T_RBGCC9'   , comp = 'gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
+    Target(name='T_RBGCC10'  , comp = 'gcc-10'   , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
+    Target(name='T_RBC11'    , comp = 'clang-11' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),
+    Target(name='T_RBC9'     , comp = 'clang-9'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
+    Target(name='T_RBC6'     , comp = 'clang-6.0', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
+    Target(name='T_RBICC'    , comp = 'icc'      , flags=['-O2', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-xHost', '-qopt-report-phase=vec'],),
+    """
     # Explicit vectorizations
-    Target(name='T_ISPC', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-g'],),
+    Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
+    Target(name='T_ISPC_GCC'   , comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    Target(name='T_ISPC_C11'   , comp='clang-11' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    Target(name='T_ISPC_C9'    , comp='clang-9'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    Target(name='T_ISPC_ICC'   , comp='icc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    """
 ]
 
 """ Directory handlers """
@@ -69,7 +62,7 @@ def fw(n): return ch(ph.join(ph.curdir, n))
 def bw(): return ch('../')
 
 
-def runner(t: Target, log_file):
+def runner(t: Target, run_file, log_file):
     # Get env
     env = dict(environ)
 
@@ -78,15 +71,16 @@ def runner(t: Target, log_file):
 
     fw(t.name)
 
-    run_file = open('run.out', mode='a' if ph.isfile('run.out') else 'x')
     stats_file = open(
         'stats.json', mode='w' if ph.isfile('stats.json') else 'x')
 
     compile_res = run(['meson', 'compile'], shell=False,
                       capture_output=True, env=env)
 
-    
-    log_file.write(compile_res.stdout.decode('utf-8'))
+    run_file.write(compile_res.stdout.decode('utf-8'))
+
+    if(JUSTCOMPILE):
+        return
 
     if(compile_res.returncode == 0):
 
@@ -134,8 +128,6 @@ def runner(t: Target, log_file):
 
 
 def merge_collected(collected: list):
-    asdf = {}
-
     res = collected[0]
     if(len(collected) == 0):
         raise Exception('Errr1')
@@ -237,7 +229,7 @@ def configure(t, log_file, run_size):
     env['CFLAGS'] = ' '.join(t.flags)
 
     if(ph.isdir(ph.join(ph.curdir, t.name))):
-        print('@ Target already exists, reconfiguring.')
+        print(f'@ Target {t.name} already exists, reconfiguring with run size: {run_size}.')
 
         fw(t.name)
 
@@ -263,18 +255,25 @@ def configure(t, log_file, run_size):
 
 def automatize(tgs):
     log_file = open('run.log', mode='w' if ph.isfile('run.log') else 'x')
-
     res = {}
     for tg in tgs:
-        sizes = {}
-        for n_size in SIZES:
-            conf = configure(tg, log_file, n_size)
-            if(conf is not None):
-                print(conf)
-                return
-            runn = runner(tg, log_file)
-            sizes[str(n_size)] = runn
-        res[tg.name] = sizes
+        run_file = open(f'run_{tg.name}.out','w' if ph.isfile(f'run_{tg.name}.out') else 'x')
+    
+        if(JUSTCOMPILE):
+            configure(tg, log_file, 1024)
+            runner(tg,run_file, log_file)
+        else: 
+            sizes = {}
+            for n_size in SIZES:
+                conf = configure(tg, log_file, n_size)
+                if(conf is not None):
+                    print(conf)
+                    return
+                runn = runner(tg,run_file, log_file)
+                sizes[str(n_size)] = runn
+            res[tg.name] = sizes
+
+        run_file.close()
 
     summ2 = open('summ2.json', mode='w' if ph.isfile('sum.json') else 'x')
     summ2.write(dumps(res))
@@ -323,7 +322,7 @@ def main():
     """ Main """
     try:
         opts, args = getopt.getopt(
-            sys.argv[1:], "hsCdc:t:r:", ["help", "output="])
+            sys.argv[1:], "jhsCdc:t:r:", ["help", "output="])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -357,6 +356,11 @@ def main():
             """ Runtimes """
             global RT
             RT = int(a)
+
+        if o == '-j':
+            """ Just compile """
+            global JUSTCOMPILE
+            JUSTCOMPILE = True
 
         elif o == '-h':
             usage()

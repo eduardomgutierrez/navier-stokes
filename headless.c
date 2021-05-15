@@ -71,8 +71,8 @@ static size_t rb_idx(size_t x, size_t y, size_t dim)
 #endif
 
 /* external definitions (from solver.c) */
-extern void dens_step(int n, float* x, float* x0, float* u, float* v, float diff, float dt);
-extern void vel_step(int n, float* u, float* v, float* u0, float* v0, float visc, float dt);
+extern void dens_step(int n, float* restrict x, float* restrict x0, float* restrict u, float* restrict v, float diff, float dt);
+extern void vel_step(int n, float* restrict u, float* restrict v, float* restrict u0, float* restrict v0, float visc, float dt);
 
 static int count;
 static float dt, diff, visc;
@@ -154,34 +154,28 @@ static int writeFields(char* H5FILE_NAME, float* dens, float* u, float* v, int o
 
 static void free_data(void)
 {
-    if (u) {
+    if (u)
         free(u);
-    }
-    if (v) {
+    if (v)
         free(v);
-    }
-    if (u_prev) {
+    if (u_prev)
         free(u_prev);
-    }
-    if (v_prev) {
+    if (v_prev)
         free(v_prev);
-    }
-    if (dens) {
+    if (dens)
         free(dens);
-    }
-    if (dens_prev) {
+    if (dens_prev)
         free(dens_prev);
-    }
-    if (fp) {
+    if (fp)
         fclose(fp);
-    }
 }
 
 static void clear_data(void)
 {
     int i, size = (N + 2) * (N + 2);
 
-    for (i = 0; i < size; i++) u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0.0f;
+    for (i = 0; i < size; i++)
+        u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0.0f;
 }
 
 static int allocate_data(void)
@@ -204,7 +198,7 @@ static int allocate_data(void)
     return (1);
 }
 
-static void react(float* d, float* u, float* v)
+static void react(float* restrict d, float* restrict u, float* restrict v)
 {
     int i, size = (N + 2) * (N + 2);
     float max_velocity2 = 0.0f;
@@ -229,6 +223,8 @@ static void react(float* d, float* u, float* v)
     assert(sources % 4 == 0);
 
     if (max_velocity2 < 0.0000005f) {
+
+        #ifdef PROP_SOURCES
         unsigned int offset = 5;
         for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
             if (!(count % 2)) {
@@ -251,8 +247,16 @@ static void react(float* d, float* u, float* v)
                 v[IX(N / 2, (N + 1) - offset)] = source * -10.0f;
             }
         }
+        #else
+        for (int i = -4; i < 5; i++)
+            for (int j = -4; j < 5; j++) {
+                u[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
+                v[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
+            }
+        #endif
     }
     if (max_density < 1.0f) {
+        #ifdef PROP_SOURCES
         unsigned int offset = 5;
         for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
             if (!(count % 2)) {
@@ -267,12 +271,17 @@ static void react(float* d, float* u, float* v)
                 d[IX(N / 2, (N + 1) - offset)] = source * 10.0f;
             }
         }
+        #else
+        for (int i = -4; i < 5; i++)
+            for (int j = -4; j < 5; j++)
+                d[IX(N / 2 + i, N / 2 + j)] = source * 10.0f;
+        #endif
     }
 
     return;
 }
 
-static void one_step(double* rct, double* vel, double* dns)
+static void one_step(double* restrict rct, double* restrict vel, double* restrict dns)
 {
     static float start_t = 0.0;
     static float react_ns_p_cell = 0.0;

@@ -233,8 +233,10 @@ static void react(float* d, float* u, float* v)
     assert(sources % 4 == 0);
 
     if (max_velocity2 < 0.0000005f) {
+
+        #ifdef PROP_SOURCES
         unsigned int offset = 5;
-        for (unsigned int count = 0; count < total && offset < N / 2; count++, offset += sources) {
+        for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
             if (!(count % 2)) {
                 u[IX(1 + offset, 1 + offset)] = force * 10.0f;
                 v[IX(1 + offset, 1 + offset)] = force * 10.0f;
@@ -255,10 +257,18 @@ static void react(float* d, float* u, float* v)
                 v[IX(N / 2, (N + 1) - offset)] = source * -10.0f;
             }
         }
+        #else
+        for (int i = -4; i < 5; i++)
+            for (int j = -4; j < 5; j++) {
+                u[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
+                v[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
+            }
+        #endif
     }
     if (max_density < 1.0f) {
+        #ifdef PROP_SOURCES
         unsigned int offset = 5;
-        for (unsigned int count = 0; count < total && offset < N / 2; count++, offset += sources) {
+        for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
             if (!(count % 2)) {
                 d[IX(1 + offset, 1 + offset)] = source * 10.0f;
                 d[IX((N + 1) - offset, (N + 1) - offset)] = source * 10.0f;
@@ -271,7 +281,13 @@ static void react(float* d, float* u, float* v)
                 d[IX(N / 2, (N + 1) - offset)] = source * 10.0f;
             }
         }
+        #else
+        for (int i = -4; i < 5; i++)
+            for (int j = -4; j < 5; j++)
+                d[IX(N / 2 + i, N / 2 + j)] = source * 10.0f;
+        #endif
     }
+    
     if (!mouse_down[0] && !mouse_down[2]) {
         return;
     }

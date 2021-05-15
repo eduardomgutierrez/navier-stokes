@@ -61,25 +61,36 @@ export void lin_solve_vect(
 {
 
     uniform int offset = n*n/2;
-    float acum, x_new;
-// do {
-//     acum = 0.0f;
+    float acum;
+    uniform int cont;
+    uniform int k = 0;
+
+//   --------------------
+//   |  0,N+1   N+1,N+1 |
+//   |  0,0     N+1,0   |
+//   --------------------
+
+do {
+    k++;
+    acum = 0.0f;
+    cont = 0;
+
     
     /// Rojos ; Impar - Impar
     for(uniform size_t i = 1; i < n-1; i+= 2)
     {
         uniform unsigned int base = (n * n / 2) + 1;
-        foreach(idx = i * n/2 ...  (i+1) * n/2)
+        foreach(idx = i * n/2 ...  (i+1) * n/2 - 1) 
         {
-            x_new = (x0[idx] 
+            x[idx] = (x0[idx] 
                 + a * (x[idx - (n/2 + 1) + base]
                 + x[idx + (n/2 - 1)+ base]
                 + x[idx - 1 + base]
                 + x[idx + base])) * inv_c;
-        // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
-        // acum += abs(x_new-x[idx]);
-        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
-        x[idx] = x_new;
+            if(x[idx] > 1e-5f){
+                cont++;         
+                acum += abs(x[idx]-x0[idx]);
+            }
         }
     }
     
@@ -87,18 +98,17 @@ export void lin_solve_vect(
     for(uniform size_t i = 2; i < n-1; i+= 2)
     {
         uniform unsigned int base = (n * n / 2) - 1;
-        foreach(idx = i * n/2 ...  (i+1) * n/2)
-        {
-            x_new = (x0[idx] 
+        foreach(idx = i * n/2 + 1 ...  (i+1) * n/2)
+        {           
+            x[idx] = (x0[idx] 
                 + a * (x[idx - (n/2 - 1) + base]
                 + x[idx + (n/2 + 1)+ base]
                 + x[idx + base]
-                + x[idx + 1 + base])) * inv_c; // ete anda
-        // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
-        // acum += abs(x_new-x[idx])/x[idx];
-        // acum += abs(x_new-x[idx]);
-        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
-        x[idx] = x_new;        
+                + x[idx + 1 + base])) * inv_c;
+            if(x[idx] > 1e-5f){
+                cont++; 
+                acum += abs(x[idx]-x0[idx]);
+            }
         }
     }
 
@@ -106,18 +116,18 @@ export void lin_solve_vect(
     for(uniform size_t i = 1; i < n-1; i+= 2)
     {
         uniform int base = -((n * n / 2) - 1);
-        foreach(idx = offset + i * n/2 ...  offset + (i+1) * n/2)
+        foreach(idx = offset + i * n/2 ...  offset + (i+1) * n/2 - 1)
         {
-            x_new = (x0[idx] 
+            x[idx] = (x0[idx] 
                 + a * (x[idx - (n/2 + 1) + base]
                 + x[idx + (n/2 - 1)+ base]
                 + x[idx - 1 + base]
                 + x[idx + base])) * inv_c;
-        // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
-        // acum += abs(x_new-x[idx])/x[idx];
-        // acum += abs(x_new-x[idx]);
-        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
-        x[idx] = x_new;
+
+            if(x[idx] > 1e-5f){
+                cont++; 
+                acum += abs(x[idx]-x0[idx]);
+            }
         }
     }
 
@@ -125,23 +135,20 @@ export void lin_solve_vect(
     for(uniform size_t i = 2; i < n-1; i+= 2)
     {
         uniform int base = -((n * n / 2) + 1);
-        foreach(idx = offset + i * n/2  ...  offset + (i+1) * n/2)
+        foreach(idx = offset + i * n/2 + 1 ... offset + (i+1) * n/2)
         {
-            x_new = (x0[idx] 
+            x[idx] = (x0[idx] 
                 + a * (x[idx - (n/2 - 1) + base]
                 + x[idx + (n/2 + 1)+ base]
                 + x[idx + base]
-                + x[idx + 1 + base])) * inv_c;                // este anda
-        // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
-        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
-        // acum += abs(x_new-x[idx])/x[idx];
-        // acum += abs(x_new-x[idx]);
-        x[idx] = x_new;
+                + x[idx + 1 + base])) * inv_c;
+            if(x[idx] > 1e-5f){
+                cont++; 
+                acum += abs(x[idx]-x0[idx]);
+            }
         }
     }
     set_bnd(n-2, b, x);
-    // uniform float res = reduce_add(acum);
-    // print("R %\n",res);
-    // } while((reduce_add(acum) / n*n) > 1e-1f);
+    } while(reduce_add(acum) / (float) cont > 1e-5f && k < 20);
     
 }
