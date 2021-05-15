@@ -252,7 +252,7 @@ def configure(t, log_file, run_size):
         print('@ Reconfigured succesfully.')
 
     else:
-        print('@ Creating new target.')
+        print(f'@ Creating target {t.name}.')
         res = run(cmd, shell=False, capture_output=True, env=env)
         log_file.write(res.stdout.decode('ascii'))
         if(res.returncode != 0):
