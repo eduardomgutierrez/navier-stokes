@@ -2,9 +2,9 @@ project('navier_stokes', 'c', default_options: [ 'warning_level=2' ])
 
 cc = meson.get_compiler('c')
 
-llikwid_dep = cc.find_library('likwid', required: true)
+# llikwid_dep = cc.find_library('likwid', required: true)
 
-hdf5 = dependency('hdf5', language: 'c')
+# hdf5 = dependency('hdf5', language: 'c')
 
 # ispc = find_program('ispc')
 
