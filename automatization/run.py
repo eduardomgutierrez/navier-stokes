@@ -46,7 +46,7 @@ targets = [
     # Lab 2
 
     # GCC
-    Target(name='T_RBGCC6', comp = 'gcc-6', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
+    Target(name='T_RBGCC6', comp = 'gcc-7', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
     Target(name='T_RBGCC9', comp = 'gcc-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
     Target(name='T_RBGCC10', comp = 'gcc-10', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
     
@@ -85,7 +85,11 @@ def runner(t: Target, log_file):
     compile_res = run(['meson', 'compile'], shell=False,
                       capture_output=True, env=env)
 
+    
+    log_file.write(compile_res.stdout.decode('utf-8'))
+
     if(compile_res.returncode == 0):
+
         run_res = None
         if(t.stats_collectors is not None and COLLECT):
             res = []
