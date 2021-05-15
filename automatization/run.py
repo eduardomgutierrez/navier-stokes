@@ -37,147 +37,31 @@ L2 = ('L2CACHE', ['L2 request rate',
 """ Defined targets """
 targets = [
 
-    # Optimization targets!
-    #     Target(name='T_LS',
-    #            stats_collectors=[FL_SP],
-    #            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE'],),
+    # Lab 1
+    # Target(name='T_O2ULFM_BASE', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
+    # Target(name='T_O2ULFM_OPT1', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DINV_M'],),
+    # Target(name='T_O2ULFM_OPT2', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M'],),
+    # Target(name='T_O2ULFM_OPT3', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE', '-ftree-vectorize'],),
 
-    #     Target(name='T_O2ULFM_LINSOLVE_INVM',
-    #            stats_collectors=[FL_SP],
-    #            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINVM'],),
+    # Lab 2
 
-    # Target(name='T_MOVIE',
-    #            stats_collectors=[FL_SP],
-    #            flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINVM', '-DH5DATA'],),
-
-
-    # GCC targets.
-    # Target(name='T_O1_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O1', '-march=native'],),
-    # Target(name='T_O2_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O2', '-march=native'],),
-    # Target(name='T_O2FM_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O2', '-ffast-math'],),
-
-
+    # GCC
+    Target(name='T_RBGCC6', comp = 'gcc-6', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
+    Target(name='T_RBGCC9', comp = 'gcc-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
+    Target(name='T_RBGCC10', comp = 'gcc-10', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
     
+    # Clang
+    Target(name='T_RBC11', comp = 'clang-11', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),
+    Target(name='T_RBC9', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
+    
+    # ICC
+    Target(name='T_RBICC', comp = 'icc', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-xHost', '-vec-report'],),
 
-    Target(name='T_O2ULFM_BASE',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
-
-    Target(name='T_O2ULFM_OPT1',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DINV_M'],),
-
-    Target(name='T_O2ULFM_OPT2',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M'],),
-
-    Target(name='T_O2ULFM_OPT3',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE', '-ftree-vectorize'],),
-
-    Target(name='T_RBC',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec', '-fopt-info-vec-missed'],),
-
-    Target(name='T_ISPC',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-g'],),
-
-    Target(name='T_RBF',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-ftree-vectorize',],),
-
-    Target(name='T_RBC_C',
-           comp='clang',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-Rpass=loop' '-Rpass-missed=loop' '-Rpass-analysis=loop' ],),
-
-    Target(name='T_RBF_C',
-           comp='clang',
-        #    stats_collectors=[FL_SP],
-           flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-ftree-vectorize','-fopt-info-vec', '-fopt-info-vec-missed'],),
-
-    Target(name='T_O3LBFM_BASE',
-           #    stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-ffast-math', '-DH5DATA'],),
-
-    Target(name='T_O3LBFM_OPT1',
-           #    stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M'],),
-
-    Target(name='T_O3LBFM_OPT2',
-           #    stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M', '-DLINSOLVE'],),
-
-    Target(name='T_O3LBFM_OPT3',
-           #    stats_collectors=[FL_SP],
-           flags=['-O3', '-march=native', '-ffast-math', '-DINV_M', '-DLINSOLVE', '-DREUSE', '-DH5DATA'],),
-
-    # Target(name='T_O3_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native'],),
-    # Target(name='T_O3UL_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native', '-funroll-loops'],),
-    # Target(name='T_O3LB_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native', '-floop-block'],),
-    # Target(name='T_O3LBFM_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native', '-ffast-math'],),
-
-    # Target(name='T_Ofast_BASE',
-    #        #    stats_collectors=[FL_SP],
-    #        flags=['-Ofast', '-march=native'],),
-    # Target(name='T_Ofast_OPT',
-    #        #    stats_collectors=[FL_SP],
-    #        flags=['-Ofast', '-march=native', '-DLINSOLVE'],),
-    # Target(name='T_OfastUL_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-Ofast', '-march=native', '-funroll-loops'],),
-    # Target(name='T_OfastUL_GCC',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-Ofast', '-march=native', '-ffast-math', '-fguess-branch-probability'],),
-
-    # Clang targets.
-    # Target(name='T_O1_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O1', '-march=native'],),
-    # Target(name='T_O2_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O2', '-march=native'],),
-    # Target(name='T_O2FM_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O2', '-ffast-math'],),
-    # Target(name='T_O2UL_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O2', '-march=native', '-funroll-loops'],),
-    # Target(name='T_O2ULFM_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math'],),
-    # Target(name='T_O3_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native'],),
-    # Target(name='T_O3UL_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native', '-funroll-loops'],),
-    # Target(name='T_O3ULFM_CLANG',
-    #        comp='clang',
-    #        stats_collectors=[FL_SP],
-    #        flags=['-O3', '-march=native', '-funroll-loops', '-ffast-math'],),
+    # Nvidia
+    Target(name='T_RBNVCC', comp = 'nvcc', flags=['-Xcompile -O2,-march=native', '--use_fast_math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '--extra-device-vectorization'],),
+    
+    # Explicit vectorizations
+    Target(name='T_ISPC', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-g'],),
 ]
 
 """ Directory handlers """

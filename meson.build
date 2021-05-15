@@ -10,16 +10,12 @@ hdf5 = dependency('hdf5', language: 'c')
 
 # ispc_gen = generator(ispc, arguments: ['lin_solve.ispc', '-h', 'lin_solve_ispc.h'], output: '@BASENAME@.h')
 
-
 headless = executable('headless',
-    [ 'headless.c', 'solver.c'], objects: 'lin_solve_ispc',
-    dependencies: [hdf5, llikwid_dep])
+    [ 'headless.c', 'solver.c'], objects: 'lin_solve_ispc')
 
 gl_dep = cc.find_library('GL', required: false)
 glu_dep = cc.find_library('GLU', required: false)
 glut_dep = cc.find_library('glut', required: false)
-
-
 
 
 demo = executable('demo',

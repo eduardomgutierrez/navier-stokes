@@ -15,12 +15,14 @@
 */
 
 #include "wtime.h"
-#include <hdf5.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
+#ifdef H5DATA
+#include <hdf5.h>
+#endif
 
 /* likwid library */
 #ifdef LIKWID_PERFMON
@@ -38,32 +40,29 @@
 
 /* global variables */
 #ifndef N
-#define N 64
+#define N 1024
 #endif
 
 /* macros */
-
-// #define IX(i, j) ((i) + (N + 2) * (j))
-// #define IX(i, j) ((i) * (N + 2) + (j))
-
 #ifdef RB
-static size_t rb_idx(size_t x, size_t y, size_t dim) {
+static size_t rb_idx(size_t x, size_t y, size_t dim)
+{
     assert(dim % 2 == 0);
     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
-    
-    #ifdef RBC
+
+#ifdef RBC
     // Por columnas
     size_t offset = (x / 2) + y * (dim / 2);
-    #else
+#else
     // Por filas
     size_t offset = (y / 2) + x * (dim / 2);
-    #endif
-    
+#endif
+
     return base + offset;
 }
-    #define IX(x,y) (rb_idx((x),(y),(N+2)))
+#define IX(x, y) (rb_idx((x), (y), (N + 2)))
 #else
-    #define IX(i, j) ((i) + (N + 2) * (j))
+#define IX(i, j) ((i) + (N + 2) * (j))
 #endif
 
 
@@ -182,9 +181,7 @@ static void clear_data(void)
 {
     int i, size = (N + 2) * (N + 2);
 
-    for (i = 0; i < size; i++) {
-        u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0.0f;
-    }
+    for (i = 0; i < size; i++) u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0.0f;
 }
 
 static int allocate_data(void)
@@ -200,7 +197,6 @@ static int allocate_data(void)
     fp = fopen(FILE_NAME, "w");
 
     if (!u || !v || !u_prev || !v_prev || !dens || !dens_prev || !fp) {
-        // printf("%d, %d, %d, %d, %d, %d, %d\n", u == NULL, v == NULL, u_prev == NULL, v_prev == NULL, dens == NULL, dens_prev == NULL, fp == NULL);
         fprintf(stderr, "cannot allocate data\n");
         return (0);
     }
@@ -228,25 +224,60 @@ static void react(float* d, float* u, float* v)
         u[i] = v[i] = d[i] = 0.0f;
     }
 
+    unsigned int sources = N * 4 / 64;
+    unsigned int total = sources / 4;
+    assert(sources % 4 == 0);
+
     if (max_velocity2 < 0.0000005f) {
-        u[IX(N / 2, N / 2)] = force * 10.0f;
-        v[IX(N / 2, N / 2)] = force * 10.0f;
+        unsigned int offset = 5;
+        for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
+            if (!(count % 2)) {
+                u[IX(1 + offset, 1 + offset)] = force * 10.0f;
+                v[IX(1 + offset, 1 + offset)] = force * 10.0f;
+
+                u[IX((N + 1) - offset, (N + 1) - offset)] = force * -10.0f;
+                v[IX((N + 1) - offset, (N + 1) - offset)] = force * -10.0f;
+
+                u[IX((N + 1) - offset, 1 + offset)] = force * -10.0f;
+                v[IX((N + 1) - offset, 1 + offset)] = force * 10.0f;
+
+                u[IX(1 + offset, (N + 1) - offset)] = force * 10.0f;
+                v[IX(1 + offset, (N + 1) - offset)] = force * -10.0f;
+
+            } else {
+                u[IX(1 + offset, N / 2)] = force * 10.0f;
+                u[IX((N + 1) - offset, N / 2)] = source * -10.0f;
+                v[IX(N / 2, 1 + offset)] = source * 10.0f;
+                v[IX(N / 2, (N + 1) - offset)] = source * -10.0f;
+            }
+        }
     }
     if (max_density < 1.0f) {
-        d[IX(N / 2, N / 2)] = source * 10.0f;
+        unsigned int offset = 5;
+        for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
+            if (!(count % 2)) {
+                d[IX(1 + offset, 1 + offset)] = source * 10.0f;
+                d[IX((N + 1) - offset, (N + 1) - offset)] = source * 10.0f;
+                d[IX((N + 1) - offset, 1 + offset)] = source * 10.0f;
+                d[IX(1 + offset, (N + 1) - offset)] = source * 10.0f;
+            } else {
+                d[IX(1 + offset, N / 2)] = source * 10.0f;
+                d[IX((N + 1) - offset, N / 2)] = source * 10.0f;
+                d[IX(N / 2, 1 + offset)] = source * 10.0f;
+                d[IX(N / 2, (N + 1) - offset)] = source * 10.0f;
+            }
+        }
     }
 
     return;
 }
 
-static void one_step(double* rct, double *vel, double* dns)
+static void one_step(double* rct, double* vel, double* dns)
 {
-    // static int times = 1;
-    static double start_t = 0.0;
-    // static double one_second = 0.0;
-    static double react_ns_p_cell = 0.0;
-    static double vel_ns_p_cell = 0.0;
-    static double dens_ns_p_cell = 0.0;
+    static float start_t = 0.0;
+    static float react_ns_p_cell = 0.0;
+    static float vel_ns_p_cell = 0.0;
+    static float dens_ns_p_cell = 0.0;
 
     start_t = wtime();
 
@@ -272,7 +303,6 @@ static void one_step(double* rct, double *vel, double* dns)
     dens_ns_p_cell += (wtime() - start_t) / (N * N);
 
 #ifdef H5DATA
-    // int status = 
     writeFields(H5FILE_NAME, dens, u, v, it);
 #endif
 
@@ -343,18 +373,20 @@ int main(int argc, char** argv)
 #ifdef H5DATA
     strcpy(H5FILE_NAME, "data.h5");
 
-    // int status = 
+    // int status =
     create_H5_2Ddata(H5FILE_NAME);
 #endif
 
     LIKWID_MARKER_START("TOTAL");
 
-    double rct,vel,dns;
+    double rct, vel, dns;
 
     for (i = 0; i < Ntimes; i++)
         one_step(&rct, &vel, &dns);
 
-    printf("# CELL_MS: %f\n", N*N * Ntimes / (rct + vel + dns) * 1e-3);
+
+    long long unsigned int total = (long long unsigned int)N * (long long unsigned int)N * (long long unsigned int)Ntimes;
+    printf("# CELL_MS: %f\n", total / (rct + vel + dns) * 1e-3);
 
     LIKWID_MARKER_STOP("TOTAL");
 

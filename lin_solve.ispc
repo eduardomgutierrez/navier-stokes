@@ -5,17 +5,13 @@ uniform unsigned int rb_idx(uniform unsigned int x, uniform unsigned int y, unif
     return base + offset;
 }
 
-// #define N 64
-#define IX(x,y,n) (rb_idx((x),(y),(n)))
+#define IX(x,y,n) (rb_idx((x),(y),(n+2)))
 
-void inv_idx(
-    uniform const int x,
-    uniform unsigned int n)
+void inv_idx(uniform const int x, uniform unsigned int n)
 {
     uniform unsigned int i;
     uniform unsigned int j;
 
-    // int brd = (n*n / 2);
     uniform int rojo = x < (n*n / 2);
     uniform int ipar;
 
@@ -65,72 +61,87 @@ export void lin_solve_vect(
 {
 
     uniform int offset = n*n/2;
-//     float acum;
+    float acum, x_new;
 // do {
 //     acum = 0.0f;
-    // Impar - Impar
+    
+    /// Rojos ; Impar - Impar
     for(uniform size_t i = 1; i < n-1; i+= 2)
     {
         uniform unsigned int base = (n * n / 2) + 1;
         foreach(idx = i * n/2 ...  (i+1) * n/2)
         {
-            x[idx] = (x0[idx] 
+            x_new = (x0[idx] 
                 + a * (x[idx - (n/2 + 1) + base]
                 + x[idx + (n/2 - 1)+ base]
                 + x[idx - 1 + base]
                 + x[idx + base])) * inv_c;
         // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
+        // acum += abs(x_new-x[idx]);
+        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
+        x[idx] = x_new;
         }
     }
-
-    // // Par - Par
+    
+    /// Rojos ; Par - Par
     for(uniform size_t i = 2; i < n-1; i+= 2)
     {
         uniform unsigned int base = (n * n / 2) - 1;
         foreach(idx = i * n/2 ...  (i+1) * n/2)
         {
-            x[idx] = (x0[idx] 
+            x_new = (x0[idx] 
                 + a * (x[idx - (n/2 - 1) + base]
                 + x[idx + (n/2 + 1)+ base]
                 + x[idx + base]
                 + x[idx + 1 + base])) * inv_c; // ete anda
         // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
+        // acum += abs(x_new-x[idx])/x[idx];
+        // acum += abs(x_new-x[idx]);
+        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
+        x[idx] = x_new;        
         }
     }
 
-    /// Negros
-
-    // Par - Impar
+    /// Negros ; Par - Impar
     for(uniform size_t i = 1; i < n-1; i+= 2)
     {
         uniform int base = -((n * n / 2) - 1);
         foreach(idx = offset + i * n/2 ...  offset + (i+1) * n/2)
         {
-            x[idx] = (x0[idx] 
+            x_new = (x0[idx] 
                 + a * (x[idx - (n/2 + 1) + base]
                 + x[idx + (n/2 - 1)+ base]
                 + x[idx - 1 + base]
                 + x[idx + base])) * inv_c;
         // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
+        // acum += abs(x_new-x[idx])/x[idx];
+        // acum += abs(x_new-x[idx]);
+        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
+        x[idx] = x_new;
         }
     }
 
-    // Impar - Par
+    /// Negros ; Impar - Par
     for(uniform size_t i = 2; i < n-1; i+= 2)
     {
         uniform int base = -((n * n / 2) + 1);
         foreach(idx = offset + i * n/2  ...  offset + (i+1) * n/2)
         {
-            x[idx] = (x0[idx] 
+            x_new = (x0[idx] 
                 + a * (x[idx - (n/2 - 1) + base]
                 + x[idx + (n/2 + 1)+ base]
                 + x[idx + base]
                 + x[idx + 1 + base])) * inv_c;                // este anda
         // acum += min(abs(x[idx]-x0[idx]), abs((x[idx]-x0[idx]))/x0[idx]);
+        // acum += min(abs(x_new - x[idx]), abs((x_new-x[idx])/x[idx]));
+        // acum += abs(x_new-x[idx])/x[idx];
+        // acum += abs(x_new-x[idx]);
+        x[idx] = x_new;
         }
     }
-    // set_bnd(n, b, x);
-
+    set_bnd(n-2, b, x);
+    // uniform float res = reduce_add(acum);
+    // print("R %\n",res);
     // } while((reduce_add(acum) / n*n) > 1e-1f);
     
 }

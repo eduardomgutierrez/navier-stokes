@@ -1,38 +1,28 @@
 #include "solver.h"
+#include "lin_solve_ispc.h"
+#include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <assert.h>
-#include "lin_solve_ispc.h"
 
 #define ABS(x) x < 0 ? -x : x
 
 #ifndef N
-#define N 64
+#define N 1024
 #endif
-
-// Cambiamos a column major.
-// #define IX(i, j) ((i) * (n + 2) + (j))
 
 #ifdef RB
-static size_t rb_idx(size_t x, size_t y, size_t dim) {
+static size_t rb_idx(size_t x, size_t y, size_t dim)
+{
     assert(dim % 2 == 0);
     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
-    
-    // #ifdef RBC
-    // // Por columnas
-    // size_t offset = (x / 2) + y * (dim / 2);
-    // #else
-    // Por filas
     size_t offset = (y / 2) + x * (dim / 2);
-    // #endif
-    
     return base + offset;
 }
-    #define IX(x,y) (rb_idx((x),(y),(N+2)))
-#else
-    #define IX(i, j) ((i) + (N + 2) * (j))
-#endif
 
+#define IX(x, y) (rb_idx((x), (y), (N + 2)))
+#else
+#define IX(i, j) ((i) + (N + 2) * (j))
+#endif
 
 
 // Simplificar
@@ -43,10 +33,7 @@ static size_t rb_idx(size_t x, size_t y, size_t dim) {
         x = tmp;         \
     }
 
-// typedef enum { NONE = 0,
-//                VERTICAL = 1,
-//                HORIZONTAL = 2 } boundary;
-
+// La enumeracion boundary esta importada en el lin_solve_ispc.h
 typedef enum boundary boundary;
 
 static void add_source(unsigned int n, float* x, const float* s, float dt)
@@ -81,30 +68,30 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
 #ifdef LINSOLVE
     float acum;
 
-    #ifdef REUSE
+#ifdef REUSE
     float x_new;
     do {
         acum = 0.0f;
         for (unsigned int i = 1; i <= n; i++) {
             unsigned int j = 1;
-            
-            #ifdef INV_M
-                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-            #else
-                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-            #endif
-            
+
+#ifdef INV_M
+            x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+#else
+            x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+#endif
+
             // TODO: Ver 0 en el denominador. Sumar solo ABS si x[IX(ij)] == 0
             acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
             x[IX(i, j)] = x_new;
 
             for (j = 2; j <= n; j++) {
 
-                #ifdef INV_M
-                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-                #else
-                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-                #endif
+#ifdef INV_M
+                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+#else
+                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+#endif
 
                 acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
                 x[IX(i, j)] = x_new;
@@ -113,19 +100,19 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         acum = acum / (n * n);
         set_bnd(n, b, x);
     } while (acum > 1e-1f);
-    
-    #else
+
+#else
     float x_new;
     do {
         acum = 0.0f;
         for (unsigned int i = 1; i <= n; i++) {
             for (unsigned int j = 1; j <= n; j++) {
-                #ifdef INV_M
-                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-                #else
-                    x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
-                #endif
-                
+#ifdef INV_M
+                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+#else
+                x_new = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
+#endif
+
                 acum += ABS((x_new - x[IX(i, j)]) / x[IX(i, j)]);
                 x[IX(i, j)] = x_new;
             }
@@ -134,119 +121,117 @@ static void lin_solve(unsigned int n, boundary b, float* x, const float* x0, flo
         set_bnd(n, b, x);
     } while (acum > 1e-1f);
 
-    #endif
+#endif
 
 #else
-    for (unsigned int k = 0; k < 20 ; k++) {
-        // #ifdef INV_M
-        // lin_solve_vect(n ,x, x0, a, inv_c);
-        // #else
-        // #endif
-        lin_solve_vect(n+2 ,b, x, x0, a, 1.0f / c);
-
-        // for (unsigned int i = 1; i <= n; i++) {
-        //     for (unsigned int j = 1; j <= n; j++) {
-        //         x[IX(i, j)] = 
-        //         (x0[IX(i, j)] 
-        //         + a * (x[IX(i - 1, j)]
-        //         + x[IX(i + 1, j)]
-        //         + x[IX(i, j - 1)]
-        //         + x[IX(i, j + 1)])) / c;
-        //     }
-        // }
-        set_bnd(n, b, x);
-    }
-#endif
 
 #ifdef VECT_LINSOLVE
+    for (unsigned int k = 0; k < 20; k++)
+        lin_solve_vect(n + 2, b, x, x0, a, 1.0f / c);
+#else
+    for (unsigned int k = 0; k < 20; k++) {
+        for (unsigned int k = 0; k < 20; k++) {
+            for (unsigned int i = 1; i <= n; i++) {
+                for (unsigned int j = 1; j <= n; j++) {
+                    x[IX(i, j)] = (x0[IX(i, j)]
+                                   + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)]))
+                        / c;
+                }
+            }
+            set_bnd(n, b, x);
+        }
+    }
+#endif
+
+
 #endif
 }
 
-static void diffuse(unsigned int n, boundary b, float* x, const float* x0, float diff, float dt)
-{
-    float a = dt * diff * n * n;
-    lin_solve(n, b, x, x0, a, 1 + 4 * a);
-}
+    static void diffuse(unsigned int n, boundary b, float* x, const float* x0, float diff, float dt)
+    {
+        float a = dt * diff * n * n;
+        lin_solve(n, b, x, x0, a, 1 + 4 * a);
+    }
 
-// Contar branch predictions.
-static void advect(unsigned int n, boundary b, float* d, const float* d0, const float* u, const float* v, float dt)
-{
-    int i0, i1, j0, j1;
-    float x, y, s0, t0, s1, t1;
+    // Contar branch predictions.
+    static void advect(unsigned int n, boundary b, float* d, const float* d0, const float* u, const float* v, float dt)
+    {
+        int i0, i1, j0, j1;
+        float x, y, s0, t0, s1, t1;
 
-    float dt0 = dt * n;
-    for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
-            x = i - dt0 * u[IX(i, j)];
-            y = j - dt0 * v[IX(i, j)];
-            if (x < 0.5f) {
-                x = 0.5f;
-            } else if (x > n + 0.5f) {
-                x = n + 0.5f;
+        float dt0 = dt * n;
+        for (unsigned int i = 1; i <= n; i++) {
+            for (unsigned int j = 1; j <= n; j++) {
+                x = i - dt0 * u[IX(i, j)];
+                y = j - dt0 * v[IX(i, j)];
+                if (x < 0.5f) {
+                    x = 0.5f;
+                } else if (x > n + 0.5f) {
+                    x = n + 0.5f;
+                }
+                i0 = (int)x;
+                i1 = i0 + 1;
+                if (y < 0.5f) {
+                    y = 0.5f;
+                } else if (y > n + 0.5f) {
+                    y = n + 0.5f;
+                }
+                j0 = (int)y;
+                j1 = j0 + 1;
+                s1 = x - i0;
+                s0 = 1 - s1;
+                t1 = y - j0;
+                t0 = 1 - t1;
+                d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) + s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
             }
-            i0 = (int)x;
-            i1 = i0 + 1;
-            if (y < 0.5f) {
-                y = 0.5f;
-            } else if (y > n + 0.5f) {
-                y = n + 0.5f;
+        }
+        set_bnd(n, b, d);
+    }
+
+    static void project(unsigned int n, float* u, float* v, float* p, float* div)
+    {
+        for (unsigned int i = 1; i <= n; i++) {
+            for (unsigned int j = 1; j <= n; j++) {
+                div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]) / n;
+                p[IX(i, j)] = 0;
             }
-            j0 = (int)y;
-            j1 = j0 + 1;
-            s1 = x - i0;
-            s0 = 1 - s1;
-            t1 = y - j0;
-            t0 = 1 - t1;
-            d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) + s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
         }
-    }
-    set_bnd(n, b, d);
-}
+        set_bnd(n, NONE, div);
+        set_bnd(n, NONE, p);
 
-static void project(unsigned int n, float* u, float* v, float* p, float* div)
-{
-    for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
-            div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]) / n;
-            p[IX(i, j)] = 0;
+        lin_solve(n, NONE, p, div, 1, 4);
+
+        for (unsigned int i = 1; i <= n; i++) {
+            for (unsigned int j = 1; j <= n; j++) {
+                u[IX(i, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
+                v[IX(i, j)] -= 0.5f * n * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
+            }
         }
+        set_bnd(n, VERTICAL, u);
+        set_bnd(n, HORIZONTAL, v);
     }
-    set_bnd(n, NONE, div);
-    set_bnd(n, NONE, p);
 
-    lin_solve(n, NONE, p, div, 1, 4);
-
-    for (unsigned int i = 1; i <= n; i++) {
-        for (unsigned int j = 1; j <= n; j++) {
-            u[IX(i, j)] -= 0.5f * n * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
-            v[IX(i, j)] -= 0.5f * n * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
-        }
+    void dens_step(unsigned int n, float* x, float* x0, float* u, float* v, float diff, float dt)
+    {
+        add_source(n, x, x0, dt);
+        SWAP(x0, x);
+        diffuse(n, NONE, x, x0, diff, dt);
+        SWAP(x0, x);
+        advect(n, NONE, x, x0, u, v, dt);
     }
-    set_bnd(n, VERTICAL, u);
-    set_bnd(n, HORIZONTAL, v);
-}
 
-void dens_step(unsigned int n, float* x, float* x0, float* u, float* v, float diff, float dt)
-{
-    add_source(n, x, x0, dt);
-    SWAP(x0, x);
-    diffuse(n, NONE, x, x0, diff, dt);
-    SWAP(x0, x);
-    advect(n, NONE, x, x0, u, v, dt);
-}
-
-void vel_step(unsigned int n, float* u, float* v, float* u0, float* v0, float visc, float dt)
-{
-    add_source(n, u, u0, dt);
-    add_source(n, v, v0, dt);
-    SWAP(u0, u);
-    diffuse(n, VERTICAL, u, u0, visc, dt);
-    SWAP(v0, v);
-    diffuse(n, HORIZONTAL, v, v0, visc, dt);
-    project(n, u, v, u0, v0);
-    SWAP(u0, u);
-    SWAP(v0, v);
-    advect(n, VERTICAL, u, u0, u0, v0, dt);
-    advect(n, HORIZONTAL, v, v0, u0, v0, dt);
-    project(n, u, v, u0, v0);
-}
+    void vel_step(unsigned int n, float* u, float* v, float* u0, float* v0, float visc, float dt)
+    {
+        add_source(n, u, u0, dt);
+        add_source(n, v, v0, dt);
+        SWAP(u0, u);
+        diffuse(n, VERTICAL, u, u0, visc, dt);
+        SWAP(v0, v);
+        diffuse(n, HORIZONTAL, v, v0, visc, dt);
+        project(n, u, v, u0, v0);
+        SWAP(u0, u);
+        SWAP(v0, v);
+        advect(n, VERTICAL, u, u0, u0, v0, dt);
+        advect(n, HORIZONTAL, v, v0, u0, v0, dt);
+        project(n, u, v, u0, v0);
+    }
