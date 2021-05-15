@@ -260,7 +260,10 @@ def automatize(tgs):
         run_file = open(f'run_{tg.name}.out','w' if ph.isfile(f'run_{tg.name}.out') else 'x')
     
         if(JUSTCOMPILE):
-            configure(tg, log_file, 1024)
+            conf = configure(tg, log_file, 1024)
+            if(conf is not None):
+                    print(conf)
+                    return
             runner(tg,run_file, log_file)
         else: 
             sizes = {}
