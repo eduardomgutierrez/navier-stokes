@@ -16,7 +16,8 @@ COLLECT = False         # Collect perf data.
 RT = 1
 
 # GFLOPs, IPC, CellsXTime
-SIZES = [66,258, 514, 1026]
+# SIZES = [66,258, 514, 1026]
+    SIZES = [66,258]
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
@@ -245,7 +246,7 @@ def configure(t, log_file, run_size):
         print('@ Reconfigured succesfully.')
 
     else:
-        print(f'@ Creating target {t.name}.')
+        print(f'@ Creating target {t.name}, with run size: {run_size}')
         res = run(cmd, shell=False, capture_output=True, env=env)
         log_file.write(res.stdout.decode('ascii'))
         if(res.returncode != 0):
@@ -258,7 +259,7 @@ def automatize(tgs):
     log_file = open('run.log', mode='w' if ph.isfile('run.log') else 'x')
     res = {}
     for tg in tgs:
-        run_file = open(f'run_{tg.name}.out','w' if ph.isfile(f'run_{tg.name}.out') else 'x')
+        run_file = open(f'run_{tg.name}.out','a' if ph.isfile(f'run_{tg.name}.out') else 'x')
     
         if(JUSTCOMPILE):
             conf = configure(tg, log_file, 1024)
@@ -279,8 +280,8 @@ def automatize(tgs):
 
         run_file.close()
 
-    summ2 = open('summ2.json', mode='w' if ph.isfile('sum.json') else 'x')
-    summ2.write(dumps(res))
+    summ = open(f'summ{tg.name}.json', mode='w' if ph.isfile(f'summ{tg.name}.json') else 'x')
+    summ.write(dumps(res))
 
 
 def usage():
