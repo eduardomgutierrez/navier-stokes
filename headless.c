@@ -388,14 +388,14 @@ int main(int argc, char** argv)
 
     LIKWID_MARKER_START("TOTAL");
 
-    double rct, vel, dns;
+    float rct, vel, dns;
 
     for (i = 0; i < Ntimes; i++)
         one_step(&rct, &vel, &dns);
 
 
-    long long unsigned int total = (long long unsigned int)N * (long long unsigned int)N * (long long unsigned int)Ntimes;
-    printf("# CELL_MS: %f\n", total / (rct + vel + dns) * 1e-3);
+    long long unsigned int total = (long long unsigned int)N * (long long unsigned int)N * (long long unsigned int)Ntimes * 1e-3;
+    printf("# CELL_MS: %f\n", total / (rct + vel + dns));
 
     LIKWID_MARKER_STOP("TOTAL");
 
