@@ -5,4 +5,4 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=28
 
-srun python3 ./automatization/run.py
+srun python3 ./automatization/run.py -t $1
