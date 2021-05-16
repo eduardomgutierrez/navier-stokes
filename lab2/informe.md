@@ -62,7 +62,7 @@ Guíandonos por los mensajes de reporte generado por los compiladores realizamos
 
 | COMPILADOR - Version | Autovectorizó |
 | -------------------- | ------------- |
-| GCC-                 |               |
+| GCC-9                 |               |
 | GCC-                 |               |
 | CLANG-               |               |
 | CLANG-               |               |

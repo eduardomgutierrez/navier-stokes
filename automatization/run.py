@@ -50,8 +50,8 @@ targets = [
     
     # Explicit vectorizations
     Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
-    Target(name='T_ISPC_GCC'   , comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    Target(name='T_ISPC_GCC6'  , comp='gcc-6'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     Target(name='T_ISPC_C11'   , comp='clang-11' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     Target(name='T_ISPC_C9'    , comp='clang-9'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     #Target(name='T_ISPC_ICC'   , comp='icc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
