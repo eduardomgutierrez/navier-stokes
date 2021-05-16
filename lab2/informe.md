@@ -49,6 +49,17 @@ Por lo que consideramos estos valores como la base de comparación.
 
 # Autovectorización
 
+Probamos de autovectorizar nuestro código con diferentes versiones de **clang** y **gcc**.
+
+Aunque si autovectorizó algunos *loops*, no hizo ningún efecto en el loop principal de *lin_solve*, que es la función que más carga tiene en el programa.
+
+Guíandonos por los mensajes de reporte generado por los compiladores realizamos ciertos cambios para ayudar al compilador para que autovectorice:
+
+- Le agregamos el modificador **restrict** a los punteros de la matriz, para evitar el aliasing de memoria.
+- Reemplazamos las cotas de los *loops* por constantes.
+- Cambiamos las condiciones de terminación de los *loops* en vez de ```<= n ``` a ``` < n + 1 ``` (sugerencia encontrada en un foro).
+- Agregamos instrucciones de preprocesador como 
+
 | COMPILADOR - Version | Autovectorizó |
 | -------------------- | ------------- |
 | GCC-                 |               |
@@ -58,13 +69,9 @@ Por lo que consideramos estos valores como la base de comparación.
 | ICC-                 |               |
 | CLANG-               |               |
 
-### Ayudando al compilador
 
-Uno de los mensajes que encontramos en los reportes de autovectorizacion en la compilacion fue: 
-- Reemplazamos en todos los loops, la variable del tamaño n, por una constante definida en compile-time. 
 
 # Vectorización explícita (ISPC)
-
 
 
 <!-- source /opt/intel/oneapi/setvars.sh intel64 -->

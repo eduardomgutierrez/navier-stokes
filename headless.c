@@ -248,11 +248,8 @@ static void react(float* restrict d, float* restrict u, float* restrict v)
             }
         }
         #else
-        for (int i = -4; i < 5; i++)
-            for (int j = -4; j < 5; j++) {
-                u[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
-                v[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
-            }
+            u[IX(N / 2, N / 2)] = force * 10.0f;
+            v[IX(N / 2, N / 2)] = force * 10.0f;
         #endif
     }
     if (max_density < 1.0f) {
@@ -272,9 +269,7 @@ static void react(float* restrict d, float* restrict u, float* restrict v)
             }
         }
         #else
-        for (int i = -4; i < 5; i++)
-            for (int j = -4; j < 5; j++)
-                d[IX(N / 2 + i, N / 2 + j)] = source * 10.0f;
+            d[IX(N / 2, N / 2)] = source * 10.0f;
         #endif
     }
 
@@ -388,14 +383,14 @@ int main(int argc, char** argv)
 
     LIKWID_MARKER_START("TOTAL");
 
-    float rct, vel, dns;
+    double rct, vel, dns;
 
     for (i = 0; i < Ntimes; i++)
         one_step(&rct, &vel, &dns);
 
 
-    long long unsigned int total = (long long unsigned int)N * (long long unsigned int)N * (long long unsigned int)Ntimes * 1e-3;
-    printf("# CELL_MS: %f\n", total / (rct + vel + dns));
+    long long unsigned int total = (long long unsigned int)N * (long long unsigned int)N * (long long unsigned int)Ntimes;
+    printf("# CELL_MS: %f\n", (total / (rct + vel + dns)) * 1e-3);
 
     LIKWID_MARKER_STOP("TOTAL");
 
