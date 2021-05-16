@@ -17,7 +17,7 @@ RT = 1
 
 # GFLOPs, IPC, CellsXTime
 # SIZES = [66,258, 514, 1026]
-    SIZES = [66,258]
+SIZES = [66,258]
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
