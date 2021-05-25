@@ -32,17 +32,10 @@ static size_t rb_idx(size_t x, size_t y, size_t dim)
 {
     assert(dim % 2 == 0);
     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
-
-#ifdef RBC
-    // Por columnas
-    size_t offset = (x / 2) + y * (dim / 2);
-#else
-    // Por filas
     size_t offset = (y / 2) + x * (dim / 2);
-#endif
-
     return base + offset;
 }
+
 #define IX(x, y) (rb_idx((x), (y), (N + 2)))
 #else
 #define IX(i, j) ((i) + (N + 2) * (j))
@@ -258,11 +251,8 @@ static void react(float* d, float* u, float* v)
             }
         }
         #else
-        for (int i = -4; i < 5; i++)
-            for (int j = -4; j < 5; j++) {
-                u[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
-                v[IX(N / 2 + i, N / 2 + j)] = force * -10.0f;
-            }
+            u[IX(N / 2, N / 2)] = force * 10.0f;
+            v[IX(N / 2, N / 2)] = force * 10.0f;
         #endif
     }
     if (max_density < 1.0f) {
@@ -282,9 +272,7 @@ static void react(float* d, float* u, float* v)
             }
         }
         #else
-        for (int i = -4; i < 5; i++)
-            for (int j = -4; j < 5; j++)
-                d[IX(N / 2 + i, N / 2 + j)] = source * 10.0f;
+            d[IX(N / 2, N / 2)] = source * 10.0f;
         #endif
     }
     

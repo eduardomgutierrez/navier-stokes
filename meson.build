@@ -13,5 +13,5 @@ gl_dep = cc.find_library('GL', required: false)
 glu_dep = cc.find_library('GLU', required: false)
 glut_dep = cc.find_library('glut', required: false)
 
-# demo = executable('demo', ['demo.c', 'solver.c', 'solver.h'], objects: ['lin_solve_ispc'],
-#       dependencies: [gl_dep, glu_dep, glut_dep])
+ demo = executable('demo', ['demo.c', 'solver.c', 'solver.h'], objects: ['lin_solve_ispc'],
+       dependencies: [gl_dep, glu_dep, glut_dep])

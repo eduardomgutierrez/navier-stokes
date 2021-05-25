@@ -45,6 +45,7 @@ enum boundary {
 #if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 extern "C" {
 #endif // __cplusplus
+    extern void lin_solve_single(uint32_t n, uint32_t i, uint32_t base, uint32_t offsetI, uint32_t offsetF, uint32_t * cont, float * acum, uint32_t alpha, float * x, const float * x0, float a, float inv_c);
     extern void lin_solve_vect(uint32_t n, enum boundary b, float * x, const float * x0, float a, float inv_c);
 #if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 } /* end extern C */

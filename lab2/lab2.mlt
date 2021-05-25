@@ -1,0 +1,148 @@
+<?xml version="1.0" standalone="no"?>
+<mlt LC_NUMERIC="C" version="7.0.0" title="Shotcut version 21.05.01" producer="main_bin">
+  <profile description="automatic" width="1920" height="1080" progressive="1" sample_aspect_num="1" sample_aspect_den="1" display_aspect_num="16" display_aspect_den="9" frame_rate_num="25" frame_rate_den="1" colorspace="709"/>
+  <chain id="chain0" in="00:00:54.520" out="00:04:15.920">
+    <property name="length">00:20:40.560</property>
+    <property name="eof">pause</property>
+    <property name="resource">/home/federico/Documents/Zoom/2021-05-16 21.04.26 Federico Stizzareunión Zoom de 75413545636/zoom_0.mp4</property>
+    <property name="mlt_service">avformat-novalidate</property>
+    <property name="seekable">1</property>
+    <property name="audio_index">1</property>
+    <property name="video_index">0</property>
+    <property name="mute_on_pause">0</property>
+    <property name="shotcut:hash">10c0339e39a8db269abdcf3f7ca7f1da</property>
+    <property name="ignore_points">1</property>
+    <property name="shotcut:caption">zoom_0.mp4</property>
+    <property name="xml">was here</property>
+  </chain>
+  <chain id="chain1" out="00:20:40.520">
+    <property name="length">00:20:40.560</property>
+    <property name="eof">pause</property>
+    <property name="resource">/home/federico/Documents/Zoom/2021-05-16 21.04.26 Federico Stizzareunión Zoom de 75413545636/zoom_0.mp4</property>
+    <property name="mlt_service">avformat-novalidate</property>
+    <property name="seekable">1</property>
+    <property name="audio_index">1</property>
+    <property name="video_index">0</property>
+    <property name="mute_on_pause">0</property>
+    <property name="shotcut:hash">10c0339e39a8db269abdcf3f7ca7f1da</property>
+    <property name="ignore_points">0</property>
+    <property name="shotcut:caption">zoom_0.mp4</property>
+    <property name="xml">was here</property>
+  </chain>
+  <chain id="chain2" in="00:06:45.200" out="00:10:45.680">
+    <property name="length">00:20:40.560</property>
+    <property name="eof">pause</property>
+    <property name="resource">/home/federico/Documents/Zoom/2021-05-16 21.04.26 Federico Stizzareunión Zoom de 75413545636/zoom_0.mp4</property>
+    <property name="mlt_service">avformat-novalidate</property>
+    <property name="seekable">1</property>
+    <property name="audio_index">1</property>
+    <property name="video_index">0</property>
+    <property name="mute_on_pause">0</property>
+    <property name="shotcut:hash">10c0339e39a8db269abdcf3f7ca7f1da</property>
+    <property name="ignore_points">1</property>
+    <property name="shotcut:caption">zoom_0.mp4</property>
+    <property name="xml">was here</property>
+  </chain>
+  <chain id="chain3" in="00:11:35.160" out="00:13:46.040">
+    <property name="length">00:20:40.560</property>
+    <property name="eof">pause</property>
+    <property name="resource">/home/federico/Documents/Zoom/2021-05-16 21.04.26 Federico Stizzareunión Zoom de 75413545636/zoom_0.mp4</property>
+    <property name="mlt_service">avformat-novalidate</property>
+    <property name="seekable">1</property>
+    <property name="audio_index">1</property>
+    <property name="video_index">0</property>
+    <property name="mute_on_pause">0</property>
+    <property name="shotcut:hash">10c0339e39a8db269abdcf3f7ca7f1da</property>
+    <property name="ignore_points">1</property>
+    <property name="shotcut:caption">zoom_0.mp4</property>
+    <property name="xml">was here</property>
+  </chain>
+  <chain id="chain4" in="00:15:56.760" out="00:18:46.600">
+    <property name="length">00:20:40.560</property>
+    <property name="eof">pause</property>
+    <property name="resource">/home/federico/Documents/Zoom/2021-05-16 21.04.26 Federico Stizzareunión Zoom de 75413545636/zoom_0.mp4</property>
+    <property name="mlt_service">avformat-novalidate</property>
+    <property name="seekable">1</property>
+    <property name="audio_index">1</property>
+    <property name="video_index">0</property>
+    <property name="mute_on_pause">0</property>
+    <property name="shotcut:hash">10c0339e39a8db269abdcf3f7ca7f1da</property>
+    <property name="ignore_points">1</property>
+    <property name="shotcut:caption">zoom_0.mp4</property>
+    <property name="xml">was here</property>
+  </chain>
+  <chain id="chain5" in="00:18:57.160" out="00:20:26.840">
+    <property name="length">00:20:40.560</property>
+    <property name="eof">pause</property>
+    <property name="resource">/home/federico/Documents/Zoom/2021-05-16 21.04.26 Federico Stizzareunión Zoom de 75413545636/zoom_0.mp4</property>
+    <property name="mlt_service">avformat-novalidate</property>
+    <property name="seekable">1</property>
+    <property name="audio_index">1</property>
+    <property name="video_index">0</property>
+    <property name="mute_on_pause">0</property>
+    <property name="shotcut:hash">10c0339e39a8db269abdcf3f7ca7f1da</property>
+    <property name="ignore_points">1</property>
+    <property name="shotcut:caption">zoom_0.mp4</property>
+    <property name="xml">was here</property>
+  </chain>
+  <playlist id="main_bin" title="Shotcut version 21.05.01">
+    <property name="shotcut:projectAudioChannels">2</property>
+    <property name="shotcut:projectFolder">0</property>
+    <property name="xml_retain">1</property>
+    <entry producer="chain0" in="00:00:54.520" out="00:04:15.920"/>
+    <entry producer="chain1" in="00:04:57.400" out="00:06:20.320"/>
+    <entry producer="chain2" in="00:06:45.200" out="00:10:45.680"/>
+    <entry producer="chain3" in="00:11:35.160" out="00:13:46.040"/>
+    <entry producer="chain4" in="00:15:56.760" out="00:18:46.600"/>
+    <entry producer="chain5" in="00:18:57.160" out="00:20:26.840"/>
+  </playlist>
+  <producer id="black" in="00:00:00.000" out="00:00:00.000">
+    <property name="length">00:00:00.040</property>
+    <property name="eof">pause</property>
+    <property name="resource">0</property>
+    <property name="aspect_ratio">1</property>
+    <property name="mlt_service">color</property>
+    <property name="mlt_image_format">rgba</property>
+    <property name="set.test_audio">0</property>
+  </producer>
+  <playlist id="background">
+    <entry producer="black" in="00:00:00.000" out="00:00:00.000"/>
+  </playlist>
+  <playlist id="playlist0">
+    <property name="shotcut:video">1</property>
+    <property name="shotcut:name">V1</property>
+    <property name="shotcut:lock">0</property>
+    <blank length="00:00:00.040"/>
+    <filter id="filter0">
+      <property name="rect">-170 92 1920 1080 1</property>
+      <property name="circle">0</property>
+      <property name="color">#ff000000</property>
+      <property name="radius">0</property>
+      <property name="mlt_service">qtcrop</property>
+      <property name="shotcut:filter">cropRectangle</property>
+    </filter>
+  </playlist>
+  <tractor id="tractor0" title="Shotcut version 21.05.01" in="00:00:00.000" out="00:00:00.000">
+    <property name="shotcut">1</property>
+    <property name="shotcut:projectAudioChannels">2</property>
+    <property name="shotcut:projectFolder">0</property>
+    <property name="shotcut:trackHeight">50</property>
+    <track producer="background"/>
+    <track producer="playlist0"/>
+    <transition id="transition0">
+      <property name="a_track">0</property>
+      <property name="b_track">1</property>
+      <property name="mlt_service">mix</property>
+      <property name="always_active">1</property>
+      <property name="sum">1</property>
+    </transition>
+    <transition id="transition1">
+      <property name="a_track">0</property>
+      <property name="b_track">1</property>
+      <property name="version">0.9</property>
+      <property name="mlt_service">frei0r.cairoblend</property>
+      <property name="threads">0</property>
+      <property name="disable">1</property>
+    </transition>
+  </tractor>
+</mlt>

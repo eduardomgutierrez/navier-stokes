@@ -16,8 +16,8 @@ COLLECT = False         # Collect perf data.
 RT = 1
 
 # GFLOPs, IPC, CellsXTime
-SIZES = [66,258, 514, 1026]
-# SIZES = [66,258]
+# SIZES = [66,  258, 512]
+SIZES = [258,512,1024]
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
@@ -48,14 +48,21 @@ targets = [
     # Target(name='T_RBC6'     , comp = 'clang-6.0', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
     # Target(name='T_RBICC'    , comp = 'icc'      , flags=['-O2', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-xHost', '-qopt-report-phase=vec'],),
     
-    # Explicit vectorizations
-    Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
-    Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    Target(name='T_ISPC_GCC6'  , comp='gcc-6'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    Target(name='T_ISPC_C11'   , comp='clang-11' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    Target(name='T_ISPC_C9'    , comp='clang-9'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+ #   Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
+  #  Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
+   # Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
+    #Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE','-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
+
+    # # Explicit vectorizations
+    #  Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
+    #  Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    #  Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    #  Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    #  Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     #Target(name='T_ISPC_ICC'   , comp='icc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     
+    Target(name='T_OMP', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],),
+    Target(name='T_OMP_C', comp = 'clang-10', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
 ]
 
 """ Directory handlers """
@@ -280,8 +287,24 @@ def automatize(tgs):
 
         run_file.close()
 
-    summ = open(f'summ{tg.name}.json', mode='w' if ph.isfile(f'summ{tg.name}.json') else 'x')
-    summ.write(dumps(res))
+    env = dict(environ)
+    if ('OMP_NUM_THREADS' in env.keys() is not None):
+        tn = env['OMP_NUM_THREADS']
+
+        if(len(SIZES) == 1):
+            summ = open(f'summ{tg.name}_TN{str(tn)}_S{str(SIZES[0])}.json', mode='w' if ph.isfile(f'summ{tg.name}_TN{str(tn)}_S{str(SIZES[0])}.json') else 'x')
+            summ.write(dumps(res))
+        else:
+            summ = open(f'summ{tg.name}_TN{str(tn)}.json', mode='w' if ph.isfile(f'summ{tg.name}_TN{str(tn)}.json') else 'x')
+            summ.write(dumps(res))
+    else:
+        if(len(SIZES) == 1):
+            summ = open(f'summ{tg.name}_S{str(SIZES[0])}.json', mode='w' if ph.isfile(f'summ{tg.name}_S{str(SIZES[0])}.json') else 'x')
+            summ.write(dumps(res))
+        else:
+            summ = open(f'summ{tg.name}.json', mode='w' if ph.isfile(f'summ{tg.name}.json') else 'x')
+            summ.write(dumps(res))
+        
 
 
 def usage():
@@ -327,7 +350,7 @@ def main():
     """ Main """
     try:
         opts, args = getopt.getopt(
-            sys.argv[1:], "jhsCdc:t:r:", ["help", "output="])
+            sys.argv[1:], "jhsCdc:t:r:S:", ["help", "output="])
     except getopt.GetoptError as err:
         print(err)
         usage()
@@ -366,6 +389,11 @@ def main():
             """ Just compile """
             global JUSTCOMPILE
             JUSTCOMPILE = True
+        
+        if o == '-S':
+            """ Set size """
+            global SIZES
+            SIZES = [a]
 
         elif o == '-h':
             usage()

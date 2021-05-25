@@ -73,6 +73,7 @@ export void lin_solve_vect(
 do {
     k++;
     acum = 0.0f;
+    // Deberiamos hacerlo variying.
     cont = 0;
 
     
@@ -87,12 +88,15 @@ do {
                 + x[idx + (n/2 - 1)+ base]
                 + x[idx - 1 + base]
                 + x[idx + base])) * inv_c;
-            if(x[idx] > 1e-5f){
+                
+            if(abs(x[idx]) > 1e-10f){
                 cont++;         
                 acum += abs(x[idx]-x0[idx]);
             }
         }
     }
+
+    
     
     /// Rojos ; Par - Par
     for(uniform size_t i = 2; i < n-1; i+= 2)
@@ -105,7 +109,8 @@ do {
                 + x[idx + (n/2 + 1)+ base]
                 + x[idx + base]
                 + x[idx + 1 + base])) * inv_c;
-            if(x[idx] > 1e-5f){
+                
+            if(abs(x[idx]) > 1e-10f){
                 cont++; 
                 acum += abs(x[idx]-x0[idx]);
             }
@@ -123,8 +128,9 @@ do {
                 + x[idx + (n/2 - 1)+ base]
                 + x[idx - 1 + base]
                 + x[idx + base])) * inv_c;
+        
 
-            if(x[idx] > 1e-5f){
+            if(abs(x[idx]) > 1e-10f){
                 cont++; 
                 acum += abs(x[idx]-x0[idx]);
             }
@@ -142,13 +148,53 @@ do {
                 + x[idx + (n/2 + 1)+ base]
                 + x[idx + base]
                 + x[idx + 1 + base])) * inv_c;
-            if(x[idx] > 1e-5f){
+            if(abs(x[idx]) > 1e-10f){
                 cont++; 
                 acum += abs(x[idx]-x0[idx]);
             }
         }
     }
     set_bnd(n-2, b, x);
-    } while(reduce_add(acum) / (float) cont > 1e-5f && k < 20);
-    
+    } while(reduce_add(acum) / (float) cont > 1e-6f && k < 20);
 }
+
+export void lin_solve_single(
+    uniform unsigned int n,
+    uniform unsigned int i,
+    uniform unsigned int base,
+    uniform unsigned int offsetI,
+    uniform unsigned int offsetF,
+    uniform unsigned int * uniform cont,
+    uniform float * uniform acum,
+    uniform unsigned int alpha, // +- 1
+    uniform float x[],
+    const uniform float x0[],
+    uniform float a,
+    uniform float inv_c)
+{
+    // unsigned int cont_ = 0;
+    // float acum_ = 0.0f;
+
+    foreach(idx = offsetI + i * n/2 ...  offsetF +(i+1) * n/2) 
+    {
+        x[idx] = (x0[idx]
+            + a * (x[idx - (n/2 - alpha) + base]
+            + x[idx + (n/2 + alpha) + base]
+            + x[idx + base + alpha]
+            + x[idx + base])) * inv_c;
+        // if(abs(x[idx]) > 1e-10f){
+        //     cont_ ++;         
+        //     acum_ += abs(x[idx]-x0[idx]);
+        // }
+    }
+
+    // *acum += reduce_add(acum_);
+    // *cont += reduce_add(cont_);
+}
+
+// 258 , 512, 1026, 2050, 4098,
+// 1
+// 2
+// 8
+// 16
+// 28
