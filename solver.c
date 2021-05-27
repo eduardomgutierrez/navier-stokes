@@ -172,7 +172,7 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
         offsetI = 0;
         offsetF = -1;
         alpha = -1;
-        #pragma omp for // reduction(+:cont1, acum1)
+        #pragma omp for reduction(+:cont1, acum1)
         for (size_t i = 1; i < n - 1; i += 2)
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont1, &acum1, alpha, x, x0, a, inv_c);
         
@@ -183,11 +183,11 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
         offsetF = 0;
         alpha = 1;
 
-        #pragma omp for // reduction(+:cont2, acum2)
+        #pragma omp for reduction(+:cont2, acum2)
         for (size_t i = 2; i < n - 1; i += 2)
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont2, &acum2, alpha, x, x0, a, inv_c);
         
-        // #pragma omp barrier
+        #pragma omp barrier
 
         acumT += acum1 + acum2;
         contT += cont1 + cont2;
@@ -203,7 +203,7 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
         base = -((n * n / 2) - 1);
         alpha = -1;
 
-        #pragma omp for // reduction(+:cont1, acum1)
+        #pragma omp for reduction(+:cont1, acum1)
         for (size_t i = 1; i < n - 1; i += 2)
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont1, &acum1, alpha, x, x0, a, inv_c);
 
@@ -213,21 +213,21 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
         offsetF = n * n / 2;
         alpha = 1;
 
-        #pragma omp for // reduction(+:cont2, acum2)
+        #pragma omp for reduction(+:cont2, acum2)
         for (size_t i = 2; i < n - 1; i += 2)
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont2, &acum2, alpha, x, x0, a, inv_c);
 
         #pragma omp barrier
 
-        // acumT += acum1 + acum2;
-        // contT += cont1 + cont2;
+        acumT += acum1 + acum2;
+        contT += cont1 + cont2;
 
         }
         set_bnd(n, b, x);
         // printf("K: %d\n", k);
         
-    // } while (acumT / (float) contT > 1e-10f && k < 20);
-    } while (k < 20);
+    } while (acumT / (float) contT > 1e-10f && k < 20);
+    // } while (k < 20);
 
 
 #else
