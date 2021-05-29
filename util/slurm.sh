@@ -7,7 +7,7 @@
 
 if [ -z "$2" ]
   then
-    srun python3 ../automatization/run.py -t $1
+    srun python3 ./automatization/run.py -t $1
   else
-    srun python3 ../automatization/run.py -t $1 -S $2
+    srun python3 ./automatization/run.py -t $1 -S $2
 fi

@@ -172,8 +172,8 @@ export void lin_solve_single(
     uniform float a,
     uniform float inv_c)
 {
-    // unsigned int cont_ = 0;
-    // float acum_ = 0.0f;
+    unsigned int cont_ = 0;
+    float acum_ = 0.0f;
 
     foreach(idx = offsetI + i * n/2 ...  offsetF +(i+1) * n/2) 
     {
@@ -182,14 +182,14 @@ export void lin_solve_single(
             + x[idx + (n/2 + alpha) + base]
             + x[idx + base + alpha]
             + x[idx + base])) * inv_c;
-        // if(abs(x[idx]) > 1e-10f){
-        //     cont_ ++;         
-        //     acum_ += abs(x[idx]-x0[idx]);
-        // }
+        if(abs(x[idx]) > 1e-10f){
+            cont_ ++;         
+            acum_ += abs(x[idx]-x0[idx]);
+        }
     }
 
-    // *acum += reduce_add(acum_);
-    // *cont += reduce_add(cont_);
+    *acum += reduce_add(acum_);
+    *cont += reduce_add(cont_);
 }
 
 // 258 , 512, 1026, 2050, 4098,
