@@ -59,7 +59,7 @@ static size_t rb_idx(size_t x, size_t y, size_t dim)
 
 
 #ifndef Ntimes
-#define Ntimes 248
+#define Ntimes 2048
 #endif
 
 /* external definitions (from solver.c) */
