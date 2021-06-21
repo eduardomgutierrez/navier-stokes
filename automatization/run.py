@@ -38,7 +38,6 @@ JUSTCOMPILE = False
 
 """ Defined targets """
 targets = [
-
     # Autovectorization
     # Target(name='T_RBGCC6'   , comp = 'gcc-6'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
     # Target(name='T_RBGCC9'   , comp = 'gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
@@ -48,21 +47,21 @@ targets = [
     # Target(name='T_RBC6'     , comp = 'clang-6.0', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
     # Target(name='T_RBICC'    , comp = 'icc'      , flags=['-O2', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-xHost', '-qopt-report-phase=vec'],),
     
- #   Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
-  #  Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
-   # Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
-    #Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE','-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
+    # Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
+    # Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
+    # Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
+    # Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE','-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
 
-    # # Explicit vectorizations
-    #  Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
-    #  Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    #  Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    #  Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    #  Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    #Target(name='T_ISPC_ICC'   , comp='icc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    # Explicit vectorizations
+    # Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
+    # Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    # Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    # Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    # Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
+    # Target(name='T_ISPC_ICC'   , comp='icc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
     
     Target(name='T_OMP', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],),
-    Target(name='T_OMP_C', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
+    # Target(name='T_OMP_C', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
 ]
 
 """ Directory handlers """
@@ -304,8 +303,6 @@ def automatize(tgs):
         else:
             summ = open(f'summ{tg.name}.json', mode='w' if ph.isfile(f'summ{tg.name}.json') else 'x')
             summ.write(dumps(res))
-        
-
 
 def usage():
     """ Prints command usage. """
@@ -316,14 +313,12 @@ def usage():
     print('-d                             Enable performance counters and collect data.')
     print('-s                             Generate summary from collected data.')
 
-
 def clean():
 
     if(run('rm T_* -r', shell=True).returncode == 0):
         return '@ Build directories cleaned succesfully.'
     else:
         return '@ Error while cleaning directories.'
-
 
 def summary(targets: list):
 

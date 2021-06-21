@@ -1,5 +1,5 @@
 #include "solver.h"
-#include "lin_solve_ispc.h"
+#include "lin_solve.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -32,8 +32,11 @@ static size_t rb_idx(size_t x, size_t y, size_t dim)
         x = tmp;         \
     }
 
-// La enumeracion boundary esta importada en el lin_solve_ispc.h
-typedef enum boundary boundary;
+typedef enum boundary {
+    NONE = 0,
+    VERTICAL = 1,
+    HORIZONTAL = 2 
+} boundary;
 
 static void add_source(unsigned int n, float* x, const float* s, float dt)
 {
@@ -59,7 +62,6 @@ static void set_bnd(unsigned int n, boundary b, float* x)
 
 static void lin_solve(unsigned int n, boundary b, float* restrict x, const float* restrict x0, float a, float c)
 {
-
 #ifdef INV_M
     float inv_c = 1.0f / c;
 #endif
@@ -73,10 +75,6 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
     do {
         acum = 0.0f;
         cont = 0;
-
-        // #pragma ivdep
-        // #pragma clang loop vectorize(assume_safety)
-        // cambio a < n+1
         for (unsigned int i = 1; i < n + 1; i++) {
             unsigned int j = 1;
             #ifdef INV_M
@@ -91,9 +89,6 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
             }
             x[IX(i, j)] = x_new;
 
-            // #pragma ivdep
-            // #pragma clang loop vectorize(assume_safety)
-            // cambio a < n+1
             for (j = 2; j < n + 1; j++) {
 
                 #ifdef INV_M
@@ -119,9 +114,6 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
     do {
         acum = 0.0f;
         cont = 0;
-        // #pragma ivdep
-        // #pragma clang loop vectorize(enable)
-        // cambio a < n+1
         for (unsigned int i = 1; i < n + 1; i++) {
             for (unsigned int j = 1; j < n + 1; j++) {
                 #ifdef INV_M
@@ -148,26 +140,20 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
     lin_solve_vect(n + 2, b, x, x0, a, 1.0f / c);
 #else
 #ifdef PAR_LINSOLVE
-
-    // Los 4 fors con #pragma parallel for (reduction :+ acum)
     int offsetI = 0, offsetF = 0, alpha = 0, base = 0;
-    float acum1, acum2, acumT;
+    float acum1, acum2, acumT ;
     unsigned int cont1, cont2, contT;
     unsigned int k = 0;
     float inv_c = 1.0f / c;
 
     do {
         k++;
-        acum1 = 0.0f;
-        acum2 = 0.0f;
-        cont1 = 0;
-        cont2 = 0;
-        contT = 0;
-        acumT = 0.0f;
-        #pragma omp parallel shared(x,x0, a, b, inv_c, n, contT, acumT) private(base, offsetI, offsetF, alpha) 
-        {
+        acum1 = 0.0f,acum2 = 0.0f,acumT = 0.0f;
+        cont1 = 0,cont2 = 0,contT = 0;
         
         // Impar - Impar
+        #pragma omp parallel shared(x,x0, a, b, inv_c, n, contT, acumT) private(base, offsetI, offsetF, alpha) 
+        {
         base = (n * n / 2) + 1;
         offsetI = 0;
         offsetF = -1;
@@ -176,7 +162,6 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
         for (size_t i = 1; i < n - 1; i += 2)
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont1, &acum1, alpha, x, x0, a, inv_c);
         
-
         /// Rojos ; Par - Par
         base = (n * n / 2) - 1;
         offsetI = 1;
@@ -188,14 +173,11 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont2, &acum2, alpha, x, x0, a, inv_c);
         
         #pragma omp barrier
-
         acumT += acum1 + acum2;
         contT += cont1 + cont2;
 
-        cont1 = 0; 
-        cont2 = 0;
-        acum1 = 0.0f;
-        acum2 = 0.0f;
+        cont1 = 0,cont2 = 0; 
+        acum1 = 0.0f,acum2 = 0.0f;        
 
         /// Negros ; Par - Impar
         offsetI = n * n / 2;
@@ -218,20 +200,14 @@ static void lin_solve(unsigned int n, boundary b, float* restrict x, const float
             lin_solve_single(n+2, i, base, offsetI, offsetF, &cont2, &acum2, alpha, x, x0, a, inv_c);
 
         #pragma omp barrier
-
         acumT += acum1 + acum2;
         contT += cont1 + cont2;
-
         }
         set_bnd(n, b, x);
-        // printf("K: %d\n", k);
         
     } while (acumT / (float) contT > 1e-10f && k < 20);
-    // } while (k < 20);
-
 
 #else
-    // cambio a < n+1
     for (unsigned int k = 0; k < 20; k++) {
         for (unsigned int i = 1; i < n + 1; i++) {
             for (unsigned int j = 1; j < n + 1; j++) {
@@ -253,14 +229,12 @@ static void diffuse(unsigned int n, boundary b, float* restrict x, const float* 
     lin_solve(n, b, x, x0, a, 1 + 4 * a);
 }
 
-// Contar branch predictions.
 static void advect(unsigned int n, boundary b, float* restrict d, const float* restrict d0, const float* restrict u, const float* restrict v, float dt)
 {
     int i0, i1, j0, j1;
     float x, y, s0, t0, s1, t1;
 
     float dt0 = dt * n;
-    // cambio a < n+1
     for (unsigned int i = 1; i < n + 1; i++) {
         for (unsigned int j = 1; j < n + 1; j++) {
             x = i - dt0 * u[IX(i, j)];
@@ -291,7 +265,6 @@ static void advect(unsigned int n, boundary b, float* restrict d, const float* r
 
 static void project(unsigned int n, float* restrict u, float* restrict v, float* restrict p, float* restrict div)
 {
-    // cambio a < n+1
     for (unsigned int i = 1; i < n + 1; i++) {
         for (unsigned int j = 1; j < n + 1; j++) {
             div[IX(i, j)] = -0.5f * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]) / n;
