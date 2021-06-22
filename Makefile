@@ -1,5 +1,5 @@
 CU=nvcc
-CUFLAGS=-O2 -Xcompiler=-Wall -ccbin clang-6.0 -arch=sm_75
+CUFLAGS=-Xcompiler=-Wall -ccbin clang-6.0 -arch=sm_75 -g -G
 LDFLAGS=
 
 TARGETS=demo headless

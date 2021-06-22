@@ -28,19 +28,15 @@
 #define N 256
 #endif
 
-/* macros */
-#ifdef RB
-static size_t rb_idx(size_t x, size_t y, size_t dim)
+__host__ __device__
+static size_t IX(size_t x, size_t y)
 {
+    size_t dim = N + 2;
     assert(dim % 2 == 0);
     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
     size_t offset = (y / 2) + x * (dim / 2);
     return base + offset;
 }
-#define IX(x, y) (rb_idx((x), (y), (N + 2)))
-#else
-#define IX(i, j) ((i) + (N + 2) * (j))
-#endif
 
 
 #ifndef Ntimes
@@ -63,17 +59,17 @@ static void free_data(void)
 {
     
     if (u)    
-        checkCudaErrors(cudaFree(u)); //free(u);
+        checkCudaErrors(cudaFree(u)); 
     if (v)
-        checkCudaErrors(cudaFree(v)); //free(v);
+        checkCudaErrors(cudaFree(v)); 
     if (u_prev)
-        checkCudaErrors(cudaFree(u_prev)); //free(u_prev);
+        checkCudaErrors(cudaFree(u_prev));
     if (v_prev)
-        checkCudaErrors(cudaFree(v_prev)); //free(v_prev);
+        checkCudaErrors(cudaFree(v_prev));
     if (dens)
-        checkCudaErrors(cudaFree(dens)); //free(dens);
+        checkCudaErrors(cudaFree(dens)); 
     if (dens_prev)
-        checkCudaErrors(cudaFree(dens_prev)); //free(dens_prev);
+        checkCudaErrors(cudaFree(dens_prev));
 }
 
 static void clear_data(void)
@@ -135,54 +131,12 @@ static void react(float* d, float* u, float* v)
     assert(sources % 4 == 0);
 
     if (max_velocity2 < 0.0000005f) {
-
-        #ifdef PROP_SOURCES
-        unsigned int offset = 5;
-        for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
-            if (!(count % 2)) {
-                u[IX(1 + offset, 1 + offset)] = force * 10.0f;
-                v[IX(1 + offset, 1 + offset)] = force * 10.0f;
-
-                u[IX((N + 1) - offset, (N + 1) - offset)] = force * -10.0f;
-                v[IX((N + 1) - offset, (N + 1) - offset)] = force * -10.0f;
-
-                u[IX((N + 1) - offset, 1 + offset)] = force * -10.0f;
-                v[IX((N + 1) - offset, 1 + offset)] = force * 10.0f;
-
-                u[IX(1 + offset, (N + 1) - offset)] = force * 10.0f;
-                v[IX(1 + offset, (N + 1) - offset)] = force * -10.0f;
-
-            } else {
-                u[IX(1 + offset, N / 2)] = force * 10.0f;
-                u[IX((N + 1) - offset, N / 2)] = source * -10.0f;
-                v[IX(N / 2, 1 + offset)] = source * 10.0f;
-                v[IX(N / 2, (N + 1) - offset)] = source * -10.0f;
-            }
-        }
-        #else
-            u[IX(N / 2, N / 2)] = force * 10.0f;
-            v[IX(N / 2, N / 2)] = force * 10.0f;
-        #endif
+        u[IX(N / 2, N / 2)] = force * 10.0f;
+        v[IX(N / 2, N / 2)] = force * 10.0f;
     }
+
     if (max_density < 1.0f) {
-        #ifdef PROP_SOURCES
-        unsigned int offset = 5;
-        for (unsigned int count = 0; count < total - 1 && offset < N / 2; count++, offset += sources) {
-            if (!(count % 2)) {
-                d[IX(1 + offset, 1 + offset)] = source * 10.0f;
-                d[IX((N + 1) - offset, (N + 1) - offset)] = source * 10.0f;
-                d[IX((N + 1) - offset, 1 + offset)] = source * 10.0f;
-                d[IX(1 + offset, (N + 1) - offset)] = source * 10.0f;
-            } else {
-                d[IX(1 + offset, N / 2)] = source * 10.0f;
-                d[IX((N + 1) - offset, N / 2)] = source * 10.0f;
-                d[IX(N / 2, 1 + offset)] = source * 10.0f;
-                d[IX(N / 2, (N + 1) - offset)] = source * 10.0f;
-            }
-        }
-        #else
-            d[IX(N / 2, N / 2)] = source * 10.0f;
-        #endif
+        d[IX(N / 2, N / 2)] = source * 10.0f;
     }
 
     return;

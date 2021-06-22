@@ -26,22 +26,20 @@
 
 /* macros */
 #ifndef N
-#define N 1024
+#define N 256
 #endif
 
-#ifdef RB
-static size_t rb_idx(size_t x, size_t y, size_t dim)
-{
-    assert(dim % 2 == 0);
-    size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
-    size_t offset = (y / 2) + x * (dim / 2);
-    return base + offset;
-}
-
-#define IX(x, y) (rb_idx((x), (y), (N + 2)))
-#else
+// #ifdef RB
+// static size_t rb_idx(size_t x, size_t y, size_t dim)
+// {
+//     assert(dim % 2 == 0);
+//     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
+//     size_t offset = (y / 2) + x * (dim / 2);
+//     return base + offset;
+// }
+// #else
 #define IX(i, j) ((i) + (N + 2) * (j))
-#endif
+// #endif
 
 
 /* global variables */
@@ -106,7 +104,6 @@ static int allocate_data(void)
     checkCudaErrors(cudaMemset(v_prev,    0, size * sizeof(float)));
     checkCudaErrors(cudaMemset(dens,      0, size * sizeof(float)));
     checkCudaErrors(cudaMemset(dens_prev, 0, size * sizeof(float)));
-
 
     if (!u || !v || !u_prev || !v_prev || !dens || !dens_prev) {
         fprintf(stderr, "cannot allocate data\n");
