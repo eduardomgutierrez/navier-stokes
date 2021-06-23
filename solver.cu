@@ -69,7 +69,6 @@ void set_bnd(uint n, boundary b, float* x)
         x[IX(i, 0)] = b == HORIZONTAL ? -x[IX(i, 1)] : x[IX(i, 1)];
         x[IX(i, n + 1)] = b == HORIZONTAL ? -x[IX(i, n)] : x[IX(i, n)];
     }
-    __syncthreads();
 }
 
 static void launch_set_bnd(uint n, boundary b, float* x){
@@ -91,7 +90,7 @@ void set_corners(uint n, boundary b, float* x) {
 static void launch_set_corners(uint n, boundary b, float* x) {
     set_corners<<<1,1>>>(n,b,x);
     getLastCudaError("set_bnd() kernel failed");
-	checkCudaErrors(cudaDeviceSynchronize());
+    checkCudaErrors(cudaDeviceSynchronize());
 }
 
 __global__
