@@ -28,15 +28,15 @@ typedef enum boundary { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 /** Utiles */
 #define ABS(x) x < 0.0f ? -x : x
 
-#define IX(i, j) ((i) + (n + 2) * (j))
-// __device__ size_t IX(size_t x, size_t y)
-// {
-//     size_t dim = N + 2;
-//     assert(dim % 2 == 0);
-//     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
-//     size_t offset = (y / 2) + x * (dim / 2);
-//     return base + offset;
-// }
+//#define IX(i, j) ((i) + (n + 2) * (j))
+ __device__ size_t IX(size_t x, size_t y)
+ {
+     size_t dim = N + 2;
+     assert(dim % 2 == 0);
+     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
+     size_t offset = (y / 2) + x * (dim / 2);
+     return base + offset;
+}
 
 // Simplificar
 #define SWAP(x0, x)      \
@@ -116,57 +116,58 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
     int i, j;
     if (ri <= n && rj <= n / 2){
         uint idx;
+	i = ri + 1;
         if (rojo)
         {
-            if (i % 2 == 0)
-            {
+            if (ri % 2 == 0)
+	    {
                 j = 2 * rj + 1;  
-                // idx = IX(i,j);
+                idx = IX(i,j);
                 base = (n * n / 2) + 1;
                 offsetI = 0;
                 offsetF = -1;
                 alpha = -1;
-                idx = ri * n/2 + j;
-                printf("ROJO ; IDX + BASE: %d\n",idx + base);
+                //idx = ri * n/2 + j;
+//                printf("ROJO ; IDX + BASE: %d\n",idx + base);
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
             else
             {
                 j = 2 * rj + 2;
-                // idx = IX(i,j);
+                idx = IX(i,j);
                 base = (n * n / 2) - 1;
                 offsetI = 1;
                 offsetF = 0;
-                idx = ri * n/2 + j;
-                printf("ROJO ; IDX2 + BASE: %d\n",idx + base);
+                //idx = ri * n/2 + j;
+//                printf("ROJO ; IDX2 + BASE: %d\n",idx + base);
                 alpha = 1;
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
         }
         else
         {
-            if (i % 2 == 0)
+            if (ri % 2 == 0)
             {
-                j = 2 * rj + 1;  
-                // idx = IX(i,j) + (n * n) / 2;
+                j = 2 * rj + 2;  
+                idx = IX(i,j) + (n * n) / 2;
                 offsetI = n * n / 2;
                 offsetF = n * n / 2 - 1;
-                idx = ri * n/2 + j + (n*n / 2);
+                //idx = ri * n/2 + j + (n*n / 2);
                 base = -((n * n / 2));
-                printf("NEGRO ; IDX + BASE: %d\n",idx + base);
+ //               printf("NEGRO ; IDX + BASE: %d\n",idx + base);
                 alpha = -1;
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
             else
             {
-                j = 2 * rj + 2;
-                // idx = IX(i,j) + (n * n) / 2;
+                j = 2 * rj + 1;
+                idx = IX(i,j) + (n * n) / 2;
                 base = -((n * n / 2));
                 offsetI = n * n / 2 + 1;
                 offsetF = n * n / 2;
-                idx = ri * n/2 + j + (n*n / 2);
+                //idx = ri * n/2 + j + (n*n / 2);
                 alpha = 1;
-                printf("NEGRO ; IDX2 + BASE: %d\n",idx + base);
+//                printf("NEGRO ; IDX2 + BASE: %d\n",idx + base);
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
         }
