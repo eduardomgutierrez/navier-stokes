@@ -118,7 +118,7 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
         uint idx;
         if (rojo)
         {
-            if (i % 2 == 0)
+            if (ri % 2 == 0)
             {
                 j = 2 * rj + 1;  
                 // idx = IX(i,j);
@@ -127,8 +127,11 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
                 offsetF = -1;
                 alpha = -1;
                 idx = ri * n/2 + j;
-                printf("ROJO ; IDX + BASE: %d\n",idx + base);
-                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+                // printf("ROJO ; IDX + BASE: %d\n",idx + base);
+                x[idx] = (x0[idx] 
+                         + a * (x[idx - (n/2 - alpha) + base] 
+                         + x[idx + (n/2 + alpha) + base] 
+                         + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
             else
             {
@@ -138,14 +141,14 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
                 offsetI = 1;
                 offsetF = 0;
                 idx = ri * n/2 + j;
-                printf("ROJO ; IDX2 + BASE: %d\n",idx + base);
+                // printf("ROJO ; IDX2 + BASE: %d\n",idx + base);
                 alpha = 1;
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
         }
         else
         {
-            if (i % 2 == 0)
+            if (ri % 2 == 0)
             {
                 j = 2 * rj + 1;  
                 // idx = IX(i,j) + (n * n) / 2;
@@ -153,7 +156,7 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
                 offsetF = n * n / 2 - 1;
                 idx = ri * n/2 + j + (n*n / 2);
                 base = -((n * n / 2));
-                printf("NEGRO ; IDX + BASE: %d\n",idx + base);
+                // printf("NEGRO ; IDX + BASE: %d\n",idx + base);
                 alpha = -1;
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
@@ -166,7 +169,7 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
                 offsetF = n * n / 2;
                 idx = ri * n/2 + j + (n*n / 2);
                 alpha = 1;
-                printf("NEGRO ; IDX2 + BASE: %d\n",idx + base);
+                // printf("NEGRO ; IDX2 + BASE: %d\n",idx + base);
                 x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
             } 
         }
