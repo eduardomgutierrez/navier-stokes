@@ -17,6 +17,11 @@
 #ifndef BLOCK_SIZE_2D
 #define BLOCK_SIZE_2D 32
 #endif
+
+#ifndef RB_BLOCK
+#define RB_BLOCK 32
+#endif
+
 typedef enum boundary { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 
 
@@ -98,192 +103,101 @@ static void launch_set_bnd(uint n, boundary b, float* x){
 }
 
 __global__
-void lin_solve_step(uint n,
-                    uint k,
-                    uint base, 
-                    uint offsetI, 
-                    uint offsetF, 
-                    uint * cont, 
-                    float * acum, 
-                    uint alpha,
-                    float *x, 
-                    const float *x0, 
-                    float a, 
-                    float inv_c,
-                    bool rojo)
+void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0, float a, float inv_c, bool rojo)
 {
-    int i = blockDim.x * blockIdx.x + threadIdx.x + 1; // 1 .. N + 1
-    int j = blockDim.y * blockIdx.y + threadIdx.y + 1; // 1 .. N/2 + 1
+    // int i = blockDim.x * blockIdx.x + threadIdx.x + 1;
+    // int j = blockDim.y * blockIdx.y + threadIdx.y + 1;
     // x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
-    if (i <= n && j <= n / 2){
+
+    int ri = blockDim.x * blockIdx.x + threadIdx.x; // 0 .. N
+    int rj = blockDim.y * blockIdx.y + threadIdx.y; // 0 .. N/2
+    int base, offsetI, offsetF, alpha;
+    
+    int i, j;
+    if (ri <= n && rj <= n / 2){
         uint idx;
-        if (rojo) {
-             if (i % 2 == 0) {
-            j = (2*j) + 2;  
-            idx = IX(i,j) + (n * n) / 2;
-            base = (n * n / 2) + 1;
-            offsetI = 0;
-            offsetF = -1;
-            alpha = -1;
-            x[idx] = (x0[idx]
-            + a * (x[idx - (n/2 - alpha) + base]
-            + x[idx + (n/2 + alpha) + base]
-            + x[idx + base + alpha]
-            + x[idx + base])) * inv_c;
-        } else {
-            j = (2*j) + 1;
-            idx = IX(i,j);
-            base = (n * n / 2) - 1;
-            offsetI = 1;
-            offsetF = 0;
-            alpha = 1;
-            x[idx] = (x0[idx]
-            + a * (x[idx - (n/2 - alpha) + base]
-            + x[idx + (n/2 + alpha) + base]
-            + x[idx + base + alpha]
-            + x[idx + base])) * inv_c;
-        } 
-        } else {
-            if (i % 2 == 0) {
-            j = (2*j) + 2;  
-            idx = IX(i,j) + (n * n) / 2;
-            offsetI = n * n / 2;
-            offsetF = n * n / 2 - 1;
-            base = -((n * n / 2) - 1);
-            alpha = -1;
-            x[idx] = (x0[idx]
-            + a * (x[idx - (n/2 - alpha) + base]
-            + x[idx + (n/2 + alpha) + base]
-            + x[idx + base + alpha]
-            + x[idx + base])) * inv_c;
-        } else {
-            j = (2*j) + 1;
-            idx = IX(i,j);
-            base = -((n * n / 2) + 1);
-            offsetI = n * n / 2 + 1;
-            offsetF = n * n / 2;
-            alpha = 1;
-            x[idx] = (x0[idx]
-            + a * (x[idx - (n/2 - alpha) + base]
-            + x[idx + (n/2 + alpha) + base]
-            + x[idx + base + alpha]
-            + x[idx + base])) * inv_c;
-            x[idx] = (x0[idx]
-            + a * (x[idx - (n/2 - alpha) + base]
-            + x[idx + (n/2 + alpha) + base]
-            + x[idx + base + alpha]
-            + x[idx + base])) * inv_c;
-        } 
+        if (rojo)
+        {
+            if (i % 2 == 0)
+            {
+                j = 2 * rj + 1;  
+                // idx = IX(i,j);
+                base = (n * n / 2) + 1;
+                offsetI = 0;
+                offsetF = -1;
+                alpha = -1;
+                idx = ri * n/2 + j;
+                printf("ROJO ; IDX + BASE: %d\n",idx + base);
+                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+            } 
+            else
+            {
+                j = 2 * rj + 2;
+                // idx = IX(i,j);
+                base = (n * n / 2) - 1;
+                offsetI = 1;
+                offsetF = 0;
+                idx = ri * n/2 + j;
+                printf("ROJO ; IDX2 + BASE: %d\n",idx + base);
+                alpha = 1;
+                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+            } 
         }
-       
+        else
+        {
+            if (i % 2 == 0)
+            {
+                j = 2 * rj + 1;  
+                // idx = IX(i,j) + (n * n) / 2;
+                offsetI = n * n / 2;
+                offsetF = n * n / 2 - 1;
+                idx = ri * n/2 + j + (n*n / 2);
+                base = -((n * n / 2));
+                printf("NEGRO ; IDX + BASE: %d\n",idx + base);
+                alpha = -1;
+                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+            } 
+            else
+            {
+                j = 2 * rj + 2;
+                // idx = IX(i,j) + (n * n) / 2;
+                base = -((n * n / 2));
+                offsetI = n * n / 2 + 1;
+                offsetF = n * n / 2;
+                idx = ri * n/2 + j + (n*n / 2);
+                alpha = 1;
+                printf("NEGRO ; IDX2 + BASE: %d\n",idx + base);
+                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+            } 
+        }
+    } else {
+        printf("RI: %d ; RJ: %d \n", ri, rj);
     }
-     // // /// Negros ; Par - Impar
-        
-
-        // for (size_t i = 1; i < n - 1; i += 2)
-        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
-
-        // // /// Negros ; Impar - Par
-        
-
-        
-        // for (size_t i = 1; i < n - 1; i += 2)
-        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
-
-        // // /// Rojos ; Par - Par
-        
 }
     
 
-static void launch_lin_solve_step(uint n, 
-                                  uint i,
-                                  uint base,
-                                  uint offsetI,
-                                  uint offsetF,
-                                  uint * cont,
-                                  float * acum,
-                                  uint alpha, 
-                                  float *x,
-                                  const float *x0,
-                                  float a,
-                                  float inv_c,
-                                  bool rojo)
+static void launch_lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0, float a, float inv_c, bool rojo)
 {
-    uint RB_BLOCK = 32;
-    dim3 block(BLOCK_SIZE_2D,BLOCK_SIZE_2D);
-    dim3 grid(div_ceil(n, block.x), div_ceil(n, block.y));
-    // necesito cubrir media matriz. = (N * N / 2)
-            // i         j
-    // dim3 block(RB_BLOCK, RB_BLOCK / 2); // ?
-    // dim3 grid(div_ceil(n, block.x), div_ceil(n/2, block.y));
-    // printf("GRID SIZE x: %d y: %d\n", div_ceil(n, block.x), div_ceil(n/2, block.y));
-    // exit(1);
-
-    lin_solve_step<<<grid, block>>>(n, i, base, offsetI, offsetF, cont, acum, alpha, x, x0, a, inv_c, rojo);
+    dim3 block(RB_BLOCK, RB_BLOCK / 2);
+    dim3 grid(div_ceil(n, block.x), div_ceil(n/2, block.y));
+    lin_solve_step<<<grid, block>>>(n, cont, acum, x, x0, a, inv_c, rojo);
     getLastCudaError("lin_solve_step() kernel failed");
 }
 
 
 static void lin_solve(uint n, boundary b, float* x, const float* x0, float a, float c)
 {
-    int offsetI = 0, offsetF = 0, alpha = 0, base = 0;
-    // float acum1, acum2, acumT ;
-    // uint cont1, cont2, contT;
     uint k = 0;
     float inv_c = 1.0f / c;
 
     do {
         k++;
-        // acum1 = 0.0f,acum2 = 0.0f,acumT = 0.0f; // cont1 = 0,cont2 = 0,contT = 0;
-        
-        // // // Impar - Impar
-        // base = (n * n / 2) + 1;
-        // offsetI = 0;
-        // offsetF = -1;
-        // alpha = -1;
-        // for (size_t i = 1; i < n - 1; i += 2)
-        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
-
-        // // /// Rojos ; Par - Par
-        // base = (n * n / 2) - 1;
-        // offsetI = 1;
-        // offsetF = 0;
-        // alpha = 1;
-        // // for (size_t i = 2; i < n- 1; i += 2)
-        // //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
-        
-        // checkCudaErrors(cudaDeviceSynchronize());
-        // // // acumT += acum1 + acum2; // contT += cont1 + cont2; // cont1 = 0,cont2 = 0;  // acum1 = 0.0f,acum2 = 0.0f;        
-
-        // // /// Negros ; Par - Impar
-        // offsetI = n * n / 2;
-        // offsetF = n * n / 2 - 1;
-        // base = -((n * n / 2) - 1);
-        // alpha = -1;
-
-        // for (size_t i = 1; i < n - 1; i += 2)
-        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
-
-        // // /// Negros ; Impar - Par
-        // base = -((n * n / 2) + 1);
-        // offsetI = n * n / 2 + 1;
-        // offsetF = n * n / 2;
-        // alpha = 1;
-
-        // for (size_t i = 2; i < n - 1; i += 2)
-        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
-
-        // checkCudaErrors(cudaDeviceSynchronize());
-
-        // // acumT += acum1 + acum2; // contT += cont1 + cont2;
-
-        launch_lin_solve_step(n, 0, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c, true);
+        launch_lin_solve_step(n, nullptr, nullptr, x, x0, a, inv_c, true);
         checkCudaErrors(cudaDeviceSynchronize());
 
-        launch_lin_solve_step(n, 0, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c, false);
+        launch_lin_solve_step(n, nullptr, nullptr, x, x0, a, inv_c, false);
         checkCudaErrors(cudaDeviceSynchronize());
         launch_set_bnd(n, b, x);
-    
     } while (k < 20);
 }
 

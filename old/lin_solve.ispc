@@ -166,7 +166,7 @@ export void lin_solve_single(
     uniform unsigned int offsetF,
     uniform unsigned int * uniform cont,
     uniform float * uniform acum,
-    uniform unsigned int alpha, // +- 1
+    uniform int alpha, // +- 1
     uniform float x[],
     const uniform float x0[],
     uniform float a,
@@ -191,10 +191,3 @@ export void lin_solve_single(
     *acum += reduce_add(acum_);
     *cont += reduce_add(cont_);
 }
-
-// 258 , 512, 1026, 2050, 4098,
-// 1
-// 2
-// 8
-// 16
-// 28
