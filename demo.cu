@@ -251,7 +251,7 @@ static void react(float* d, float* u, float* v)
         }
         #else
             u[IX(N / 2, N / 2)] = force * 10.0f;
-            v[IX(N / 2, N / 2)] = force * 10.0f;
+            v[IX(N / 2, N / 2)] = force * -10.0f;
         #endif
     }
     if (max_density < 1.0f) {

@@ -59,8 +59,9 @@ static void launch_add_source(uint n, float* x, const float* s, float dt) {
     getLastCudaError("add_source() kernel failed");
 }
 
+
 __global__
-void set_bnd(uint n, boundary b, float* x)
+void set_bnd(uint n, boundary b, float* x, bool* status)
 {
     uint i = blockDim.x * blockIdx.x + threadIdx.x + 1;
     if (i < n + 1){
@@ -69,33 +70,36 @@ void set_bnd(uint n, boundary b, float* x)
         x[IX(i, 0)] = b == HORIZONTAL ? -x[IX(i, 1)] : x[IX(i, 1)];
         x[IX(i, n + 1)] = b == HORIZONTAL ? -x[IX(i, n)] : x[IX(i, n)];
     }
+    // if (i == 1) {   // calculo esquina 0 0 y marco SI
+    //     x[IX(0, 0)] = 0.5f * (x[IX(1, 0)] + x[IX(0, 1)]);
+    //     status[0] = true;
+    // } else if (i == n) { // calculo esquina n+1 n+1 y marco ID
+    //     x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
+    //     status[1] = true;
+    // }
+
+    // if (status[0] && status[1] && !status[2]) {
+    //     x[IX(0, n + 1)] = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
+    //     x[IX(n + 1, 0)] = 0.5f * (x[IX(n, 0)] + x[IX(n + 1, 1)]);
+    //     status[2] = true;
+    //     // printf("ENTRE PADRE! \n");
+    // }
 }
 
 static void launch_set_bnd(uint n, boundary b, float* x){
     dim3 block(BLOCK_SIZE);
     dim3 grid(div_ceil<uint>(n, BLOCK_SIZE));
-    set_bnd<<<grid,block>>>(n,b,x);
+    bool *status = nullptr;
+    checkCudaErrors(cudaMalloc(&status, 3 * sizeof(bool)));
+    checkCudaErrors(cudaMemset(status, 0, 3 * sizeof(bool)));
+    set_bnd<<<grid,block>>>(n,b,x,status);
     getLastCudaError("set_bnd() kernel failed");
 	checkCudaErrors(cudaDeviceSynchronize());
 }
 
 __global__
-void set_corners(uint n, boundary b, float* x) {
-    x[IX(0, 0)] = 0.5f * (x[IX(1, 0)] + x[IX(0, 1)]);
-    x[IX(0, n + 1)] = 0.5f * (x[IX(1, n + 1)] + x[IX(0, n)]);
-    x[IX(n + 1, 0)] = 0.5f * (x[IX(n, 0)] + x[IX(n + 1, 1)]);
-    x[IX(n + 1, n + 1)] = 0.5f * (x[IX(n, n + 1)] + x[IX(n + 1, n)]);
-}
-
-static void launch_set_corners(uint n, boundary b, float* x) {
-    set_corners<<<1,1>>>(n,b,x);
-    getLastCudaError("set_bnd() kernel failed");
-    checkCudaErrors(cudaDeviceSynchronize());
-}
-
-__global__
 void lin_solve_step(uint n,
-                    uint k, 
+                    uint k,
                     uint base, 
                     uint offsetI, 
                     uint offsetF, 
@@ -105,25 +109,89 @@ void lin_solve_step(uint n,
                     float *x, 
                     const float *x0, 
                     float a, 
-                    float inv_c)
+                    float inv_c,
+                    bool rojo)
 {
-    int i = blockDim.x * blockIdx.x + threadIdx.x + 1;
-    int j = blockDim.y * blockIdx.y + threadIdx.y + 1;
-    
-    x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+    int i = blockDim.x * blockIdx.x + threadIdx.x + 1; // 1 .. N + 1
+    int j = blockDim.y * blockIdx.y + threadIdx.y + 1; // 1 .. N/2 + 1
+    // x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+    if (i <= n && j <= n / 2){
+        uint idx;
+        if (rojo) {
+             if (i % 2 == 0) {
+            j = (2*j) + 2;  
+            idx = IX(i,j) + (n * n) / 2;
+            base = (n * n / 2) + 1;
+            offsetI = 0;
+            offsetF = -1;
+            alpha = -1;
+            x[idx] = (x0[idx]
+            + a * (x[idx - (n/2 - alpha) + base]
+            + x[idx + (n/2 + alpha) + base]
+            + x[idx + base + alpha]
+            + x[idx + base])) * inv_c;
+        } else {
+            j = (2*j) + 1;
+            idx = IX(i,j);
+            base = (n * n / 2) - 1;
+            offsetI = 1;
+            offsetF = 0;
+            alpha = 1;
+            x[idx] = (x0[idx]
+            + a * (x[idx - (n/2 - alpha) + base]
+            + x[idx + (n/2 + alpha) + base]
+            + x[idx + base + alpha]
+            + x[idx + base])) * inv_c;
+        } 
+        } else {
+            if (i % 2 == 0) {
+            j = (2*j) + 2;  
+            idx = IX(i,j) + (n * n) / 2;
+            offsetI = n * n / 2;
+            offsetF = n * n / 2 - 1;
+            base = -((n * n / 2) - 1);
+            alpha = -1;
+            x[idx] = (x0[idx]
+            + a * (x[idx - (n/2 - alpha) + base]
+            + x[idx + (n/2 + alpha) + base]
+            + x[idx + base + alpha]
+            + x[idx + base])) * inv_c;
+        } else {
+            j = (2*j) + 1;
+            idx = IX(i,j);
+            base = -((n * n / 2) + 1);
+            offsetI = n * n / 2 + 1;
+            offsetF = n * n / 2;
+            alpha = 1;
+            x[idx] = (x0[idx]
+            + a * (x[idx - (n/2 - alpha) + base]
+            + x[idx + (n/2 + alpha) + base]
+            + x[idx + base + alpha]
+            + x[idx + base])) * inv_c;
+            x[idx] = (x0[idx]
+            + a * (x[idx - (n/2 - alpha) + base]
+            + x[idx + (n/2 + alpha) + base]
+            + x[idx + base + alpha]
+            + x[idx + base])) * inv_c;
+        } 
+        }
+       
+    }
+     // // /// Negros ; Par - Impar
+        
 
-// foreach(idx = offsetI + i * n/2 ...  offsetF +(i+1) * n/2) 
-//     {
-//         x[idx] = (x0[idx]
-//             + a * (x[idx - (n/2 - alpha) + base]
-//             + x[idx + (n/2 + alpha) + base]
-//             + x[idx + base + alpha]
-//             + x[idx + base])) * inv_c;
-//         if(abs(x[idx]) > 1e-10f){
-//             cont_ ++;         
-//             acum_ += abs(x[idx]-x0[idx]);
-//         }
-//     }
+        // for (size_t i = 1; i < n - 1; i += 2)
+        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
+
+        // // /// Negros ; Impar - Par
+        
+
+        
+        // for (size_t i = 1; i < n - 1; i += 2)
+        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
+
+        // // /// Rojos ; Par - Par
+        
 }
     
 
@@ -138,11 +206,20 @@ static void launch_lin_solve_step(uint n,
                                   float *x,
                                   const float *x0,
                                   float a,
-                                  float inv_c)
+                                  float inv_c,
+                                  bool rojo)
 {
+    uint RB_BLOCK = 32;
     dim3 block(BLOCK_SIZE_2D,BLOCK_SIZE_2D);
     dim3 grid(div_ceil(n, block.x), div_ceil(n, block.y));
-    lin_solve_step<<<grid, block>>>(n, i, base, offsetI, offsetF, cont, acum, alpha, x, x0, a, inv_c);
+    // necesito cubrir media matriz. = (N * N / 2)
+            // i         j
+    // dim3 block(RB_BLOCK, RB_BLOCK / 2); // ?
+    // dim3 grid(div_ceil(n, block.x), div_ceil(n/2, block.y));
+    // printf("GRID SIZE x: %d y: %d\n", div_ceil(n, block.x), div_ceil(n/2, block.y));
+    // exit(1);
+
+    lin_solve_step<<<grid, block>>>(n, i, base, offsetI, offsetF, cont, acum, alpha, x, x0, a, inv_c, rojo);
     getLastCudaError("lin_solve_step() kernel failed");
 }
 
@@ -159,7 +236,7 @@ static void lin_solve(uint n, boundary b, float* x, const float* x0, float a, fl
         k++;
         // acum1 = 0.0f,acum2 = 0.0f,acumT = 0.0f; // cont1 = 0,cont2 = 0,contT = 0;
         
-        // // Impar - Impar
+        // // // Impar - Impar
         // base = (n * n / 2) + 1;
         // offsetI = 0;
         // offsetF = -1;
@@ -167,28 +244,27 @@ static void lin_solve(uint n, boundary b, float* x, const float* x0, float a, fl
         // for (size_t i = 1; i < n - 1; i += 2)
         //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
 
-        // /// Rojos ; Par - Par
+        // // /// Rojos ; Par - Par
         // base = (n * n / 2) - 1;
         // offsetI = 1;
         // offsetF = 0;
         // alpha = 1;
-        // for (size_t i = 2; i < n - 1; i += 2)
-        //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
+        // // for (size_t i = 2; i < n- 1; i += 2)
+        // //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
         
         // checkCudaErrors(cudaDeviceSynchronize());
-        // // acumT += acum1 + acum2; // contT += cont1 + cont2; // cont1 = 0,cont2 = 0;  // acum1 = 0.0f,acum2 = 0.0f;        
+        // // // acumT += acum1 + acum2; // contT += cont1 + cont2; // cont1 = 0,cont2 = 0;  // acum1 = 0.0f,acum2 = 0.0f;        
 
-        // /// Negros ; Par - Impar
+        // // /// Negros ; Par - Impar
         // offsetI = n * n / 2;
         // offsetF = n * n / 2 - 1;
         // base = -((n * n / 2) - 1);
         // alpha = -1;
 
-        // #pragma omp for reduction(+:cont1, acum1)
         // for (size_t i = 1; i < n - 1; i += 2)
         //     launch_lin_solve_step(n, i, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
 
-        // /// Negros ; Impar - Par
+        // // /// Negros ; Impar - Par
         // base = -((n * n / 2) + 1);
         // offsetI = n * n / 2 + 1;
         // offsetF = n * n / 2;
@@ -201,11 +277,12 @@ static void lin_solve(uint n, boundary b, float* x, const float* x0, float a, fl
 
         // // acumT += acum1 + acum2; // contT += cont1 + cont2;
 
-        launch_lin_solve_step(n, 0, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c);
+        launch_lin_solve_step(n, 0, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c, true);
         checkCudaErrors(cudaDeviceSynchronize());
 
+        launch_lin_solve_step(n, 0, base, offsetI, offsetF, nullptr, nullptr, alpha, x, x0, a, inv_c, false);
+        checkCudaErrors(cudaDeviceSynchronize());
         launch_set_bnd(n, b, x);
-        launch_set_corners(n,b,x);
     
     } while (k < 20);
 }
@@ -261,7 +338,6 @@ static void advect(uint n, boundary b, float* d, const float* d0, const float* u
 {
     launch_advect_step(n,b,d,d0,u,v,dt);
     launch_set_bnd(n, b, d);
-    launch_set_corners(n, b, d);
 }
 
 __global__
@@ -303,30 +379,19 @@ static void project(uint n, float* u, float* v, float* p, float* div)
 {
     launch_pre_project(n,u,v,p,div);
     checkCudaErrors(cudaDeviceSynchronize());
-
     launch_set_bnd(n, NONE, div);
-    launch_set_corners(n, NONE, div);
-
     launch_set_bnd(n, NONE, p);
-    launch_set_corners(n, NONE, p);
-
     lin_solve(n, NONE, p, div, 1, 4);
-
     launch_post_project(n,u,v,p,div);
     checkCudaErrors(cudaDeviceSynchronize());
-    
     launch_set_bnd(n, VERTICAL, u);
-    launch_set_corners(n, VERTICAL, u);
-
     launch_set_bnd(n, HORIZONTAL, v);
-    launch_set_corners(n, HORIZONTAL, v);
 }
 
 void dens_step(uint n, float* x, float* x0, float* u, float* v, float diff, float dt)
 {
     launch_add_source(n, x, x0, dt);
     checkCudaErrors(cudaDeviceSynchronize());
-    
     SWAP(x0, x);
     diffuse(n, NONE, x, x0, diff, dt);
     SWAP(x0, x);
@@ -338,7 +403,6 @@ void vel_step(uint n, float* u, float* v, float* u0, float* v0, float visc, floa
     launch_add_source(n, u, u0, dt);
     launch_add_source(n, v, v0, dt);
     checkCudaErrors(cudaDeviceSynchronize());
-
     SWAP(u0, u);
     diffuse(n, VERTICAL, u, u0, visc, dt);
     SWAP(v0, v);
