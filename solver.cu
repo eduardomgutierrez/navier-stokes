@@ -24,13 +24,12 @@
 
 typedef enum boundary { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 
-
 /** Utiles */
 #define ABS(x) x < 0.0f ? -x : x
 
 //#define IX(i, j) ((i) + (n + 2) * (j))
- __device__ size_t IX(size_t x, size_t y)
- {
+__device__ size_t IX(size_t x, size_t y)
+{
      size_t dim = N + 2;
      assert(dim % 2 == 0);
      size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
@@ -38,7 +37,6 @@ typedef enum boundary { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
      return base + offset;
 }
 
-// Simplificar
 #define SWAP(x0, x)      \
     {                    \
         float* tmp = x0; \
@@ -105,82 +103,70 @@ static void launch_set_bnd(uint n, boundary b, float* x){
 __global__
 void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0, float a, float inv_c, bool rojo)
 {
+    // 2D ; 1 elemento por hilo no redblack. No entiendo porque funciona, pero lo hace.
     // int i = blockDim.x * blockIdx.x + threadIdx.x + 1;
     // int j = blockDim.y * blockIdx.y + threadIdx.y + 1;
-    // x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
+    // if(i <= n && j <= n)
+    //     x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
 
-    int ri = blockDim.x * blockIdx.x + threadIdx.x; // 0 .. N
-    int rj = blockDim.y * blockIdx.y + threadIdx.y; // 0 .. N/2
-    int base, offsetI, offsetF, alpha;
+    // 2D ; 1 elemento por hilo. No anda ni para atras.
+    
+    int ri = blockDim.x * blockIdx.x + threadIdx.x + 1; // 1 .. N
+    int rj = blockDim.y * blockIdx.y + threadIdx.y + 1; // 1 .. N/2
+    int base, alpha;
     
     int i, j;
-    if (ri <= n && rj <= n / 2){
+    if (ri <= n && rj <= n / 2) {
         uint idx;
-	i = ri + 1;
+	    i = ri;
         if (rojo)
         {
             if (ri % 2 == 0)
-	    {
-                j = 2 * rj + 1;  
+	        {
+                j = 2 * rj;  
                 idx = IX(i,j);
-                base = (n * n / 2) + 1;
-                offsetI = 0;
-                offsetF = -1;
-                alpha = -1;
-                //idx = ri * n/2 + j;
-//                printf("ROJO ; IDX + BASE: %d\n",idx + base);
-                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+                x[idx] = (x0[idx] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
             } 
             else
             {
-                j = 2 * rj + 2;
+                j = 2 * rj - 1;
                 idx = IX(i,j);
-                base = (n * n / 2) - 1;
-                offsetI = 1;
-                offsetF = 0;
-                //idx = ri * n/2 + j;
-//                printf("ROJO ; IDX2 + BASE: %d\n",idx + base);
-                alpha = 1;
-                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+                x[idx] = (x0[idx] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
             } 
         }
         else
         {
             if (ri % 2 == 0)
             {
-                j = 2 * rj + 2;  
-                idx = IX(i,j) + (n * n) / 2;
-                offsetI = n * n / 2;
-                offsetF = n * n / 2 - 1;
-                //idx = ri * n/2 + j + (n*n / 2);
-                base = -((n * n / 2));
- //               printf("NEGRO ; IDX + BASE: %d\n",idx + base);
-                alpha = -1;
-                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+                j = 2 * rj - 1;
+                idx = IX(i,j);
+                x[idx] = (x0[idx] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
             } 
             else
             {
-                j = 2 * rj + 1;
-                idx = IX(i,j) + (n * n) / 2;
-                base = -((n * n / 2));
-                offsetI = n * n / 2 + 1;
-                offsetF = n * n / 2;
-                //idx = ri * n/2 + j + (n*n / 2);
-                alpha = 1;
-//                printf("NEGRO ; IDX2 + BASE: %d\n",idx + base);
-                x[idx] = (x0[idx] + a * (x[idx - (n/2 - alpha) + base] + x[idx + (n/2 + alpha) + base] + x[idx + base + alpha] + x[idx + base])) * inv_c;
+                j = 2 * rj;  
+                idx = IX(i,j);
+                x[idx] = (x0[idx] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * inv_c;
             } 
         }
-    } else {
-        printf("RI: %d ; RJ: %d \n", ri, rj);
     }
 }
     
 
 static void launch_lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0, float a, float inv_c, bool rojo)
 {
+    // 2D ; 1 elemento por hilo no redblack. No entiendo porque funciona, pero lo hace.
+    // dim3 block(BLOCK_SIZE_2D,BLOCK_SIZE_2D);
+    // dim3 grid(div_ceil(n, block.x), div_ceil(n, block.y));
+    
+    // 2D ; 1 elemento por hilo. No anda ni para atras.
     dim3 block(RB_BLOCK, RB_BLOCK / 2);
     dim3 grid(div_ceil(n, block.x), div_ceil(n/2, block.y));
+
+    // 1D ;
+    // dim3 block(BLOCK_SIZE);
+    // dim3 grid(div_ceil(n*n/2, block.x));
+
     lin_solve_step<<<grid, block>>>(n, cont, acum, x, x0, a, inv_c, rojo);
     getLastCudaError("lin_solve_step() kernel failed");
 }
@@ -198,6 +184,7 @@ static void lin_solve(uint n, boundary b, float* x, const float* x0, float a, fl
 
         launch_lin_solve_step(n, nullptr, nullptr, x, x0, a, inv_c, false);
         checkCudaErrors(cudaDeviceSynchronize());
+        // exit(1);
         launch_set_bnd(n, b, x);
     } while (k < 20);
 }

@@ -1,5 +1,5 @@
 CU=nvcc
-CUFLAGS=-Xcompiler=-Wall -arch=sm_75 -DBLOCK_SIZE=256 -g -G
+CUFLAGS=-O2 -Xcompiler=-Wall -arch=sm_75 -DBLOCK_SIZE=256 -ccbin clang-6.0
 LDFLAGS=
 
 TARGETS=demo headless

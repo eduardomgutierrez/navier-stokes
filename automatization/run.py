@@ -62,6 +62,9 @@ targets = [
     
     Target(name='T_OMP', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],),
     # Target(name='T_OMP_C', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
+
+    Target(name='T_CUDA', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    
 ]
 
 """ Directory handlers """
@@ -234,7 +237,7 @@ def configure(t, log_file, run_size):
     if(t.stats_collectors is not None):
         t.flags.append('-DLIKWID_PERFMON')
 
-    env['CFLAGS'] = ' '.join(t.flags)
+    env['CUFLAGS'] = ' '.join(t.flags)
 
     if(ph.isdir(ph.join(ph.curdir, t.name))):
         print(f'@ Target {t.name} already exists, reconfiguring with run size: {run_size}.')

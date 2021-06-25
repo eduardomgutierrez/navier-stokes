@@ -30,15 +30,16 @@
 #endif
 
 // #ifdef RB
-// static size_t rb_idx(size_t x, size_t y, size_t dim)
-// {
-//     assert(dim % 2 == 0);
-//     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
-//     size_t offset = (y / 2) + x * (dim / 2);
-//     return base + offset;
-// }
+static size_t IX(size_t x, size_t y)
+{   
+    size_t dim = N + 2;
+    assert(dim % 2 == 0);
+    size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
+    size_t offset = (y / 2) + x * (dim / 2);
+    return base + offset;
+}
 // #else
-#define IX(i, j) ((i) + (N + 2) * (j))
+// #define IX(i, j) ((i) + (N + 2) * (j))
 // #endif
 
 
