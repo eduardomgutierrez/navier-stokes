@@ -113,7 +113,6 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
     
     int ri = blockDim.x * blockIdx.x + threadIdx.x + 1; // 1 .. N
     int rj = blockDim.y * blockIdx.y + threadIdx.y + 1; // 1 .. N/2
-    int base, alpha;
     
     int i, j;
     if (ri <= n && rj <= n / 2) {

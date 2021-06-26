@@ -38,16 +38,10 @@ static size_t IX(size_t x, size_t y)
     return base + offset;
 }
 
-
 #ifndef Ntimes
 #define Ntimes 2048
 #endif
 
-/* external definitions (from solver.cu?) */
-// extern void dens_step(int n, float* x, float* x0, float*  u, float* v, float diff, float dt);
-// extern void vel_step(int n, float* u, float* v, float*  u0, float* v0, float visc, float dt);
-
-static int count;
 static float dt, diff, visc;
 static float force, source;
 
@@ -70,14 +64,6 @@ static void free_data(void)
         checkCudaErrors(cudaFree(dens)); 
     if (dens_prev)
         checkCudaErrors(cudaFree(dens_prev));
-}
-
-static void clear_data(void)
-{
-    int i, size = (N + 2) * (N + 2);
-
-    for (i = 0; i < size; i++)
-        u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0.0f;
 }
 
 // Allocate and clean! 
@@ -126,10 +112,6 @@ static void react(float* d, float* u, float* v)
         u[i] = v[i] = d[i] = 0.0f;
     }
 
-    unsigned int sources = N * 4 / 64;
-    unsigned int total = sources / 4;
-    assert(sources % 4 == 0);
-
     if (max_velocity2 < 0.0000005f) {
         u[IX(N / 2, N / 2)] = force * 10.0f;
         v[IX(N / 2, N / 2)] = force * 10.0f;
@@ -169,7 +151,6 @@ static void one_step(double* rct, double* vel, double* dns)
 int main(int argc, char** argv)
 {
     int i = 0;
-    count = 0;
     if (argc != 1 && argc != 8) {
         fprintf(stderr, "usage : %s N dt diff visc force source\n", argv[0]);
         fprintf(stderr, "where:\n");
@@ -202,7 +183,6 @@ int main(int argc, char** argv)
     if (!allocate_data()) {
         exit(1);
     }
-    // clear_data();
 
     double rct, vel, dns;
 
