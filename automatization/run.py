@@ -4,13 +4,15 @@ from functools import reduce
 from json import load, dumps, JSONDecodeError
 from target import Target
 from subprocess import run
-from os import path as ph, chdir as ch, environ, write
+from os import mkdir, path as ph, chdir as ch, environ, write
 import numpy as np
 
 
 """ Run variables """
 CORE = 1                # Selected core[s] to run the likwid-perfctr.
 COLLECT = False         # Collect perf data.
+
+USE_MESON = False
 
 # 
 RT = 1
@@ -38,18 +40,14 @@ JUSTCOMPILE = False
 
 """ Defined targets """
 targets = [
-    Target(name='T_OMP', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],),
-    # Target(name='T_OMP_C', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
-
-    Target(name='T_CUDA_B128_RB_32',  flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
-    Target(name='T_CUDA_B256_RB_32',  flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=256', '-DRB_BLOCK=32'],),
-    Target(name='T_CUDA_B512_RB_32',  flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=512', '-DRB_BLOCK=32'],),
-    Target(name='T_CUDA_B1024_RB_32', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=32'],),
-    Target(name='T_CUDA_B128_RB_16',  flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=128', '-DRB_BLOCK=16'],),
-    Target(name='T_CUDA_B256_RB_16',  flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=256', '-DRB_BLOCK=16'],),
-    Target(name='T_CUDA_B512_RB_16',  flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=512', '-DRB_BLOCK=16'],),
-    Target(name='T_CUDA_B1024_RB_16', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=16'],)
-    
+    Target(name='T_CUDA_B128_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B256_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=256', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B512_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=512', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B1024_RB_32', flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B128_RB_16',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=128', '-DRB_BLOCK=16'],),
+    Target(name='T_CUDA_B256_RB_16',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=256', '-DRB_BLOCK=16'],),
+    Target(name='T_CUDA_B512_RB_16',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=512', '-DRB_BLOCK=16'],),
+    Target(name='T_CUDA_B1024_RB_16', flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=16'],)
 ]
 
 """ Directory handlers """
@@ -69,8 +67,11 @@ def runner(t: Target, run_file, log_file):
     stats_file = open(
         'stats.json', mode='w' if ph.isfile('stats.json') else 'x')
 
-    compile_res = run(['meson', 'compile'], shell=False,
-                      capture_output=True, env=env)
+    compile_res = None
+    if(USE_MESON):
+        compile_res = run(['meson', 'compile'], shell=False, capture_output=True, env=env)
+    else:
+        compile_res = run(['make'], shell=False, capture_output=True, env=env)
 
     run_file.write(compile_res.stdout.decode('utf-8'))
 
@@ -206,6 +207,29 @@ def collect1(sc, output, stats_file, log_file, flags):
         return '@! Error collecting data. See run.log for more details.'
 
 
+
+def copyCudaSrcs(f):
+    res = run([f'cp {f}*.cu .'], shell=True, capture_output=True)
+    if(res.returncode != 0):
+        print(res.stderr.decode('utf-8'))
+        raise Exception('Error copiando .cu')
+    res = run(['cp', f'{f}helper_cuda.h', '.'], shell=False, capture_output=True)
+    if(res.returncode != 0):
+        print(res.stderr.decode('utf-8'))
+        raise Exception('Error copiando helper')
+    res = run(['cp', f'{f}Makefile', '.'], shell=False, capture_output=True)
+    if(res.returncode != 0):
+        print(res.stderr.decode('utf-8'))
+        raise Exception('Error copiando helper')
+    res = run(['cp', f'{f}solver.h', '.'], shell=False, capture_output=True)
+    if(res.returncode != 0):
+        print(res.stderr.decode('utf-8'))
+        raise Exception('Error copiando helper')
+    res = run(['cp', f'{f}wtime.h', '.'], shell=False, capture_output=True)
+    if(res.returncode != 0):
+        print(res.stderr.decode('utf-8'))
+        raise Exception('Error copiando helper')
+
 def configure(t, log_file, run_size):
     cmd = ['meson', 'setup', f'{t.name}']
     wipe_cmd = ['meson', 'setup', '--wipe']
@@ -229,7 +253,13 @@ def configure(t, log_file, run_size):
 
         fw(t.name)
 
-        res = run(wipe_cmd, shell=False, capture_output=True, env=env)
+        res = None
+        if(USE_MESON):
+            res = run(wipe_cmd, shell=False, capture_output=True, env=env)
+        else:
+            res = run('rm *', shell=True, capture_output=True, env=env)
+            copyCudaSrcs('../')
+
         log_file.write(res.stdout.decode('ascii'))
 
         bw()
@@ -241,10 +271,16 @@ def configure(t, log_file, run_size):
 
     else:
         print(f'@ Creating target {t.name}, with run size: {run_size}')
-        res = run(cmd, shell=False, capture_output=True, env=env)
-        log_file.write(res.stdout.decode('ascii'))
-        if(res.returncode != 0):
-            return f'@! Error creating {t.name}. See run.log for more details.'
+        if(USE_MESON):
+            res = run(cmd, shell=False, capture_output=True, env=env)
+            log_file.write(res.stdout.decode('ascii'))
+            if(res.returncode != 0):
+                return f'@! Error creating {t.name}. See run.log for more details.'
+        else:
+            mkdir(t.name)
+            fw(t.name)
+            copyCudaSrcs('../')
+            bw()
 
         print('@ Target created succesfully.')
 
