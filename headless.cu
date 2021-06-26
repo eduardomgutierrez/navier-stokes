@@ -24,14 +24,14 @@
 #include "solver.h"
 
 /* global variables */
-#ifndef N
-#define N 1024
+#ifndef SIZE
+#define SIZE 256
 #endif
 
 __host__ __device__
 static size_t IX(size_t x, size_t y)
 {
-    size_t dim = N + 2;
+    size_t dim = SIZE + 2;
     assert(dim % 2 == 0);
     size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
     size_t offset = (y / 2) + x * (dim / 2);
@@ -69,7 +69,7 @@ static void free_data(void)
 // Allocate and clean! 
 static int allocate_data(void)
 {
-    int size = (N + 2) * (N + 2);
+    int size = (SIZE + 2) * (SIZE + 2);
     /* Allocate magic mem in CPU & GPU. */ 
     checkCudaErrors(cudaMallocManaged(&u,         size * sizeof(float)));
     checkCudaErrors(cudaMallocManaged(&v,         size * sizeof(float)));
@@ -94,7 +94,7 @@ static int allocate_data(void)
 
 static void react(float* d, float* u, float* v)
 {
-    int i, size = (N + 2) * (N + 2);
+    int i, size = (SIZE + 2) * (SIZE + 2);
     float max_velocity2 = 0.0f;
     float max_density = 0.0f;
 
@@ -113,12 +113,12 @@ static void react(float* d, float* u, float* v)
     }
 
     if (max_velocity2 < 0.0000005f) {
-        u[IX(N / 2, N / 2)] = force * 10.0f;
-        v[IX(N / 2, N / 2)] = force * 10.0f;
+        u[IX(SIZE / 2, SIZE / 2)] = force * 10.0f;
+        v[IX(SIZE / 2, SIZE / 2)] = force * 10.0f;
     }
 
     if (max_density < 1.0f) {
-        d[IX(N / 2, N / 2)] = source * 10.0f;
+        d[IX(SIZE / 2, SIZE / 2)] = source * 10.0f;
     }
 
     return;
@@ -133,11 +133,11 @@ static void one_step(double* rct, double* vel, double* dns)
     *rct += (wtime() - start_t);
 
     start_t = wtime();
-    vel_step(N, u, v, u_prev, v_prev, visc, dt);
+    vel_step(SIZE, u, v, u_prev, v_prev, visc, dt);
     *vel += (wtime() - start_t);
 
     start_t = wtime();
-    dens_step(N, dens, dens_prev, u, v, diff, dt);
+    dens_step(SIZE, dens, dens_prev, u, v, diff, dt);
     *dns += (wtime() - start_t);
 }
 
@@ -152,9 +152,9 @@ int main(int argc, char** argv)
 {
     int i = 0;
     if (argc != 1 && argc != 8) {
-        fprintf(stderr, "usage : %s N dt diff visc force source\n", argv[0]);
+        fprintf(stderr, "usage : %s SIZE dt diff visc force source\n", argv[0]);
         fprintf(stderr, "where:\n");
-        fprintf(stderr, "\t N      : grid resolution\n");
+        fprintf(stderr, "\t SIZE      : grid resolution\n");
         fprintf(stderr, "\t dt     : time step\n");
         fprintf(stderr, "\t diff   : diffusion rate of the density\n");
         fprintf(stderr, "\t visc   : viscosity of the fluid\n");
@@ -170,8 +170,8 @@ int main(int argc, char** argv)
         visc = 0.0f;
         force = 5.0f;
         source = 100.0f;
-        fprintf(stderr, "Using defaults : N=%d dt=%g diff=%g visc=%g force=%g source=%g\n",
-                N, dt, diff, visc, force, source);
+        fprintf(stderr, "Using defaults : SIZE=%d dt=%g diff=%g visc=%g force=%g source=%g\n",
+                SIZE, dt, diff, visc, force, source);
     } else {
         dt = atof(argv[2]);
         diff = atof(argv[3]);
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
     for (i = 0; i < Ntimes; i++)
         one_step(&rct, &vel, &dns);
 
-    long long unsigned int total = (long long unsigned int)N * (long long unsigned int)N * (long long unsigned int)Ntimes;
+    long long unsigned int total = (long long unsigned int)SIZE * (long long unsigned int)SIZE * (long long unsigned int)Ntimes;
     printf("# CELL_MS: %f\n", (total / (rct + vel + dns)) * 1e-3);
 
     free_data();

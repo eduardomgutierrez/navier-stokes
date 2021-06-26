@@ -6,8 +6,8 @@
 #include "helper_cuda.h"
 
 /** Constantes */
-#ifndef N
-#define N 1024
+#ifndef SIZE
+#define SIZE 256
 #endif
 
 #ifndef BLOCK_SIZE
@@ -30,7 +30,7 @@ typedef enum boundary { NONE = 0, VERTICAL = 1, HORIZONTAL = 2 } boundary;
 //#define IX(i, j) ((i) + (n + 2) * (j))
 __device__ size_t IX(size_t x, size_t y)
 {
-     size_t dim = N + 2;
+     size_t dim = SIZE + 2;
      assert(dim % 2 == 0);
      size_t base = ((x % 2) ^ (y % 2)) * dim * (dim / 2);
      size_t offset = (y / 2) + x * (dim / 2);
@@ -111,8 +111,8 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
 
     // 2D ; 1 elemento por hilo. No anda ni para atras.
     
-    int ri = blockDim.x * blockIdx.x + threadIdx.x + 1; // 1 .. N
-    int rj = blockDim.y * blockIdx.y + threadIdx.y + 1; // 1 .. N/2
+    int ri = blockDim.x * blockIdx.x + threadIdx.x + 1; // 1 .. SIZE
+    int rj = blockDim.y * blockIdx.y + threadIdx.y + 1; // 1 .. SIZE/2
     
     int i, j;
     if (ri <= n && rj <= n / 2) {

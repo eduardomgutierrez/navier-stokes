@@ -40,7 +40,7 @@ JUSTCOMPILE = False
 
 """ Defined targets """
 targets = [
-    Target(name='T_CUDA_B128_RB_32',  flags=['-O2', '-ccbin clang-6.0', '-arch=sm_75', '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B128_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
     Target(name='T_CUDA_B256_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=256', '-DRB_BLOCK=32'],),
     Target(name='T_CUDA_B512_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=512', '-DRB_BLOCK=32'],),
     Target(name='T_CUDA_B1024_RB_32', flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=32'],),
@@ -207,6 +207,15 @@ def collect1(sc, output, stats_file, log_file, flags):
         return '@! Error collecting data. See run.log for more details.'
 
 
+def setCuflags(target: Target):
+    with open(f'Makefile', 'r') as f:
+        data = f.readlines()
+
+        data[1] = f"CUFLAGS={' '.join(target.flags)}\n"
+
+    with open(f'Makefile', 'w') as f:
+        f.writelines(data)
+    pass
 
 def copyCudaSrcs(f):
     res = run([f'cp {f}*.cu .'], shell=True, capture_output=True)
@@ -241,12 +250,13 @@ def configure(t, log_file, run_size):
     if t.comp is not None:
         env['CC'] = t.comp
 
-    t.flags.append(f'-DN={run_size}')
+    t.flags.append(f'-DSIZE={run_size}')
 
     if(t.stats_collectors is not None):
         t.flags.append('-DLIKWID_PERFMON')
 
-    env['CUFLAGS'] = ' '.join(t.flags)
+    if(USE_MESON):
+        env['CUFLAGS'] = ' '.join(t.flags)
 
     if(ph.isdir(ph.join(ph.curdir, t.name))):
         print(f'@ Target {t.name} already exists, reconfiguring with run size: {run_size}.')
@@ -259,6 +269,7 @@ def configure(t, log_file, run_size):
         else:
             res = run('rm *', shell=True, capture_output=True, env=env)
             copyCudaSrcs('../')
+            setCuflags(t)
 
         log_file.write(res.stdout.decode('ascii'))
 
@@ -280,6 +291,7 @@ def configure(t, log_file, run_size):
             mkdir(t.name)
             fw(t.name)
             copyCudaSrcs('../')
+            setCuflags(t)
             bw()
 
         print('@ Target created succesfully.')
