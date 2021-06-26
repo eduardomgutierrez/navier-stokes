@@ -13,4 +13,4 @@ gl_dep = cc.find_library('GL', required: false)
 glu_dep = cc.find_library('GLU', required: false)
 glut_dep = cc.find_library('glut', required: false)
 
- demo = executable('demo', ['demo.cu', 'solver.cu'], dependencies: [gl_dep, glu_dep, glut_dep])
+demo = executable('demo', ['demo.cu', 'solver.cu'], dependencies: [gl_dep, glu_dep, glut_dep])

@@ -17,7 +17,7 @@ RT = 1
 
 # GFLOPs, IPC, CellsXTime
 # SIZES = [66,  258, 512]
-SIZES = [258,512,1024]
+SIZES = [256,512,1024]
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
@@ -38,32 +38,18 @@ JUSTCOMPILE = False
 
 """ Defined targets """
 targets = [
-    # Autovectorization
-    # Target(name='T_RBGCC6'   , comp = 'gcc-6'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
-    # Target(name='T_RBGCC9'   , comp = 'gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
-    # Target(name='T_RBGCC10'  , comp = 'gcc-10'   , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC', '-ftree-vectorize', '-fopt-info-vec'],),
-    # Target(name='T_RBC11'    , comp = 'clang-11' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),
-    # Target(name='T_RBC9'     , comp = 'clang-9'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
-    # Target(name='T_RBC6'     , comp = 'clang-6.0', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-missed=loop', '-Rpass-analysis=loop'],),    
-    # Target(name='T_RBICC'    , comp = 'icc'      , flags=['-O2', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-DRBC',  '-xHost', '-qopt-report-phase=vec'],),
-    
-    # Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
-    # Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE', '-ftree-vectorize', '-fopt-info-vec'],),
-    # Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE',  '-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
-    # Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DRB', '-DREUSE','-ftree-vectorize', '-Rpass=loop', '-Rpass-analysis=loop'],),
-
-    # Explicit vectorizations
-    # Target(name='T_O2ULFM_OPT3', comp='gcc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DLINSOLVE', '-DINV_M', '-DREUSE'],),
-    # Target(name='T_ISPC_GCC9'  , comp='gcc-9'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    # Target(name='T_ISPC_GCC7'  , comp='gcc-7'    , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    # Target(name='T_ISPC_C10'   , comp='clang-10' , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    # Target(name='T_ISPC_C6'    , comp='clang-6.0'  , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    # Target(name='T_ISPC_ICC'   , comp='icc'      , flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DVECT_LINSOLVE', '-DINV_M', '-DRB', '-DREUSE'],),
-    
     Target(name='T_OMP', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],),
     # Target(name='T_OMP_C', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
 
-    Target(name='T_CUDA', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B128_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B256_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B512_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B1024_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+
+    Target(name='T_CUDA_B128_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B256_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B512_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
+    Target(name='T_CUDA_B1024_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],)
     
 ]
 
