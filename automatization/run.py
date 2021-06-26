@@ -17,7 +17,7 @@ RT = 1
 
 # GFLOPs, IPC, CellsXTime
 # SIZES = [66,  258, 512]
-SIZES = [256,512,1024]
+SIZES = [256,512]
 
 """ Counter groups, and collect metadata """
 FL_SP = ('FLOPS_SP', ['Runtime (RDTSC) [s]',
@@ -41,15 +41,14 @@ targets = [
     Target(name='T_OMP', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],),
     # Target(name='T_OMP_C', comp = 'clang-9', flags=['-O2', '-march=native', '-funroll-loops', '-ffast-math', '-DRB', '-DPAR_LINSOLVE', '-fopenmp'],)
 
-    Target(name='T_CUDA_B128_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-    Target(name='T_CUDA_B256_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-    Target(name='T_CUDA_B512_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-    Target(name='T_CUDA_B1024_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-
-    Target(name='T_CUDA_B128_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-    Target(name='T_CUDA_B256_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-    Target(name='T_CUDA_B512_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],),
-    Target(name='T_CUDA_B1024_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=256'],)
+    Target(name='T_CUDA_B128_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B256_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=256', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B512_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=512', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B1024_RB_32', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B128_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=128', '-DRB_BLOCK=16'],),
+    Target(name='T_CUDA_B256_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=256', '-DRB_BLOCK=16'],),
+    Target(name='T_CUDA_B512_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75',   '-DBLOCK_SIZE=512', '-DRB_BLOCK=16'],),
+    Target(name='T_CUDA_B1024_RB_16', comp='clang-6.0', flags=['-O2', '-Xcompiler=-Wall', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=16'],)
     
 ]
 

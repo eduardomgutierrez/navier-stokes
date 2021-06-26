@@ -1,15 +1,39 @@
 #!/bin/bash
 
-for tn in 1 2 4 8 16 28
-do
-export OMP_NUM_THREADS=$tn
-echo Encolando T_OMP y T_OMP_C con $OMP_NUM_THREADS hilos.
+echo Encolando T_CUDA.
 
-sbatch ./util/slurm.sh T_OMP
-sbatch ./util/slurm.sh T_OMP 2050
-sbatch ./util/slurm.sh T_OMP 4098
+sbatch ./util/slurm.sh T_CUDA_B128_RB_32
+sbatch ./util/slurm.sh T_CUDA_B256_RB_32
+sbatch ./util/slurm.sh T_CUDA_B512_RB_32
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_32
+sbatch ./util/slurm.sh T_CUDA_B128_RB_16
+sbatch ./util/slurm.sh T_CUDA_B256_RB_16
+sbatch ./util/slurm.sh T_CUDA_B512_RB_16
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_16
 
-sbatch ./util/slurm.sh T_OMP_C
-sbatch ./util/slurm.sh T_OMP_C 2050
-sbatch ./util/slurm.sh T_OMP_C 4098
-done
+sbatch ./util/slurm.sh T_CUDA_B128_RB_32 1024
+sbatch ./util/slurm.sh T_CUDA_B256_RB_32 1024
+sbatch ./util/slurm.sh T_CUDA_B512_RB_32 1024
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_32 1024
+sbatch ./util/slurm.sh T_CUDA_B128_RB_16 1024
+sbatch ./util/slurm.sh T_CUDA_B256_RB_16 1024
+sbatch ./util/slurm.sh T_CUDA_B512_RB_16 1024
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_16 1024
+
+sbatch ./util/slurm.sh T_CUDA_B128_RB_32 2048
+sbatch ./util/slurm.sh T_CUDA_B256_RB_32 2048
+sbatch ./util/slurm.sh T_CUDA_B512_RB_32 2048
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_32 2048
+sbatch ./util/slurm.sh T_CUDA_B128_RB_16 2048
+sbatch ./util/slurm.sh T_CUDA_B256_RB_16 2048
+sbatch ./util/slurm.sh T_CUDA_B512_RB_16 2048
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_16 2048
+
+sbatch ./util/slurm.sh T_CUDA_B128_RB_32 4096
+sbatch ./util/slurm.sh T_CUDA_B256_RB_32 4096
+sbatch ./util/slurm.sh T_CUDA_B512_RB_32 4096
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_32 4096
+sbatch ./util/slurm.sh T_CUDA_B128_RB_16 4096
+sbatch ./util/slurm.sh T_CUDA_B256_RB_16 4096
+sbatch ./util/slurm.sh T_CUDA_B512_RB_16 4096
+sbatch ./util/slurm.sh T_CUDA_B1024_RB_16 4096
