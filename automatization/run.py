@@ -40,7 +40,7 @@ JUSTCOMPILE = False
 
 """ Defined targets """
 targets = [
-    Target(name='T_CUDA_B128_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
+    Target(name='T_CUDA_B128_RB_32',  flags=['-O2', '-ccbin clang-6.0', '-arch=sm_75', '-DBLOCK_SIZE=128', '-DRB_BLOCK=32'],),
     Target(name='T_CUDA_B256_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=256', '-DRB_BLOCK=32'],),
     Target(name='T_CUDA_B512_RB_32',  flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=512', '-DRB_BLOCK=32'],),
     Target(name='T_CUDA_B1024_RB_32', flags=['-O2', '-arch=sm_75', '-DBLOCK_SIZE=1024', '-DRB_BLOCK=32'],),

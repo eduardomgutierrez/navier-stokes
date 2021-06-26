@@ -7,7 +7,7 @@
 
 /** Constantes */
 #ifndef N
-#define N 256
+#define N 1024
 #endif
 
 #ifndef BLOCK_SIZE

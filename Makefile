@@ -1,6 +1,4 @@
 CU=nvcc
-CUFLAGS=-O2 -Xcompiler=-Wall -arch=sm_75 -DBLOCK_SIZE=256 -ccbin clang-6.0
-LDFLAGS=
 
 TARGETS=demo headless
 SOURCES=$(shell echo *.cu) 

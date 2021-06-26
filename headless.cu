@@ -25,7 +25,7 @@
 
 /* global variables */
 #ifndef N
-#define N 256
+#define N 1024
 #endif
 
 __host__ __device__
