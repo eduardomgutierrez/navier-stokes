@@ -1,4 +1,4 @@
-# Laboratorio 2 - Vectorización
+# Laboratorio 3 - Paralelización multi-core
 
 ###### 13 de Mayo de 2021
 

@@ -1,5 +1,5 @@
 CU=nvcc
-CUFLAGS=
+CUFLAGS= -ccbin clang-6.0
 TARGETS=demo headless
 SOURCES=$(shell echo *.cu) 
 COMMON_OBJECTS=solver.o

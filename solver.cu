@@ -153,18 +153,10 @@ void lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0
     
 
 static void launch_lin_solve_step(uint n, uint * cont, float * acum, float *x, const float *x0, float a, float inv_c, bool rojo)
-{
-    // 2D ; 1 elemento por hilo no redblack. No entiendo porque funciona, pero lo hace.
-    // dim3 block(BLOCK_SIZE_2D,BLOCK_SIZE_2D);
-    // dim3 grid(div_ceil(n, block.x), div_ceil(n, block.y));
-    
-    // 2D ; 1 elemento por hilo. No anda ni para atras.
+{    
+    // 2D ; 1 elemento por hilo.
     dim3 block(RB_BLOCK, RB_BLOCK / 2);
     dim3 grid(div_ceil(n, block.x), div_ceil(n/2, block.y));
-
-    // 1D ;
-    // dim3 block(BLOCK_SIZE);
-    // dim3 grid(div_ceil(n*n/2, block.x));
 
     lin_solve_step<<<grid, block>>>(n, cont, acum, x, x0, a, inv_c, rojo);
     getLastCudaError("lin_solve_step() kernel failed");
@@ -183,7 +175,7 @@ static void lin_solve(uint n, boundary b, float* x, const float* x0, float a, fl
 
         launch_lin_solve_step(n, nullptr, nullptr, x, x0, a, inv_c, false);
         checkCudaErrors(cudaDeviceSynchronize());
-        // exit(1);
+
         launch_set_bnd(n, b, x);
     } while (k < 20);
 }
